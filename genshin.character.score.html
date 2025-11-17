@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>原神 ビルドカードジェネレーター</title>
+    <style>
+        /* 基本的なスタイリング */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #444;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        label, select, input, button {
+            display: block;
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+            box-sizing: border-box;
+            border-radius: 5px;
+            border: none;
+        }
+        input[type="text"], select {
+            background-color: #555;
+            color: #fff;
+        }
+        button {
+            background-color: #4CAF50; /* 緑色のボタン */
+            color: white;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result-area {
+            margin-top: 30px;
+            border: 1px solid #666;
+            padding: 15px;
+            background-color: #222;
+            border-radius: 5px;
+            text-align: left;
+        }
+        #result-area img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: block;
+        }
+        #char-list-select {
+            display: none; /* キャラクター選択を最初は非表示 */
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>原神 ビルドカードジェネレーター</h1>
+    <p>UIDとキャラクター名を入力し、スコアタイプを選択してビルドカードを生成します。</p>
+
+    <label for="uid-input">原神 UID (半角数字):</label>
+    <input type="text" id="uid-input" placeholder="例: 800000000">
+    
+    <button onclick="getCharacterList()">1. キャラクターリストを取得</button>
+    
+    <div id="char-list-select">
+        <label for="chara-select">キャラクター名を選択:</label>
+        <select id="chara-select"></select>
+    </div>
+    
+    <label for="score-select">スコアタイプを選択:</label>
+    <select id="score-select">
+        <option value="ATTACK">攻撃力 (ATTACK)</option>
+        <option value="HP">体力 (HP)</option>
+        <option value="CHARGE">元素チャージ (CHARGE)</option>
+        <option value="ELEMENT">元素熟知 (ELEMENT)</option>
+        <option value="DEFENCE">防御力 (DEFENCE)</option>
+    </select>
+    
+    <button onclick="generateBuildCard()">2. ビルドカードを生成</button>
+
+    <div id="result-area">
+        <h2>結果:</h2>
+        <div id="output"></div>
+    </div>
+</div>
+
+<script>
+    // --- API エンドポイント ---
+    const BASE_URL = "https://genshin-image-gen-api.krnk.org/api/";
+
+    // --- 1. キャラクターリスト取得機能 ---
+    async function getCharacterList() {
+        const uid = document.getElementById('uid-input').value.trim();
+        const output = document.getElementById('output');
+        const charaSelect = document.getElementById('chara-select');
+        const charListSelectDiv = document.getElementById('char-list-select');
+        
+        if (!/^\d+$/.test(uid)) {
+            output.innerHTML = "<p style='color: yellow;'>⚠️ 有効なUIDを入力してください。</p>";
+            return;
+        }
+
+        output.innerHTML = "<p>キャラクターリストを取得中...</p>";
+        charaSelect.innerHTML = ""; // 選択肢をリセット
+
+        try {
+            const url = `${BASE_URL}genshindata/?uid=${uid}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                // APIからのエラーレスポンスを処理
+                const errorData = await response.json();
+                output.innerHTML = `<p style='color: red;'>❌ エラー: ${errorData.detail || 'キャラクターデータの取得に失敗しました。'}</p>`;
+                charListSelectDiv.style.display = 'none';
+                return;
+            }
+
+            const data = await response.json();
+            const characters = data.characters;
+            
+            if (characters && characters.length > 0) {
+                characters.forEach(char => {
+                    const option = document.createElement('option');
+                    option.value = char.name; // 日本語名
+                    option.textContent = char.name;
+                    charaSelect.appendChild(option);
+                });
+                
+                output.innerHTML = "<p style='color: lightgreen;'>✅ キャラクターリストを取得しました。ドロップダウンから選択してください。</p>";
+                charListSelectDiv.style.display = 'block'; // 選択肢を表示
+            } else {
+                output.innerHTML = "<p style='color: yellow;'>⚠️ このUIDに関連付けられたキャラクターが見つかりませんでした。</p>";
+                charListSelectDiv.style.display = 'none';
+            }
+
+        } catch (error) {
+            output.innerHTML = `<p style='color: red;'>❌ 通信エラー: サーバーとの接続に失敗しました。</p>`;
+            console.error(error);
+        }
+    }
+
+
+    // --- 2. ビルドカード生成機能 ---
+    async function generateBuildCard() {
+        const uid = document.getElementById('uid-input').value.trim();
+        const charaName = document.getElementById('chara-select').value;
+        const scoreType = document.getElementById('score-select').value;
+        const output = document.getElementById('output');
+        
+        if (!uid || !charaName) {
+            output.innerHTML = "<p style='color: yellow;'>⚠️ UIDの入力と、キャラクターの選択を完了してください。</p>";
+            return;
+        }
+        
+        output.innerHTML = "<p>ビルドカード画像を生成中... しばらくお待ちください。</p>";
+
+        try {
+            // APIのURLを構築
+            // スコアタイプ: ATTACK, HP, CHARGE, ELEMENT, DEFENCE のいずれか
+            const url = `${BASE_URL}generation/?uid=${uid}&scoretype=${scoreType}&charaName=${charaName}`;
+
+            // <img>タグの src として直接APIを呼び出す（APIが画像を返すため）
+            const imageUrl = url;
+            
+            output.innerHTML = `
+                <p style='color: lightgreen;'>✅ 生成完了しました。</p>
+                <a href="${imageUrl}" target="_blank">画像を別タブで開く (フルサイズ)</a>
+                <img src="${imageUrl}" alt="${charaName} ビルドカード">
+            `;
+
+        } catch (error) {
+            output.innerHTML = `<p style='color: red;'>❌ 通信エラー: 画像の生成に失敗しました。</p>`;
+            console.error(error);
+        }
+    }
+
+</script>
+
+</body>
+</html>
