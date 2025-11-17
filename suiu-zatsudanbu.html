@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>翠雨雑談部 メンバー募集中</title>
     <style>
-        /* 削除: html, body の height: 100%; */
+        /* 上下中央揃えの削除を維持 */
         html, body {
             margin: 0;
             padding: 0;
@@ -16,24 +16,22 @@
             color: #333;
             line-height: 1.6;
             padding: 20px;
-            /* 削除: Flexbox関連 (display: flex, justify-content: center, align-items: center) */
 
-            /* ===== 背景画像の設定 ===== */
+            /* ===== 背景画像の設定 (縦横比を維持するために background-size: cover) ===== */
             background-image: url('https://raw.githubusercontent.com/suiuhyousoushimokorihu-jpg/suiuhyousoushimokorihu.github.io/refs/heads/main/483920174650182.png');
             background-repeat: repeat;
-            background-size: auto; 
+            background-size: cover; /* 縦横比を維持して画面全体を覆う */
             background-color: #f4f7f6;
             background-attachment: scroll; 
-            background-position: top left;
-            /* ========================= */
+            background-position: center center; /* 画像を中央に配置 */
+            /* ========================================================================= */
         }
 
         .container {
             max-width: 800px;
-            /* 左右中央揃えは維持。上下の margin を調整 */
-            margin: 40px auto; /* 上下に40pxのマージンを空け、左右は中央揃え */
+            /* 左右中央揃えを維持。上下にマージンを空ける */
+            margin: 40px auto;
             
-            /* 背景画像が見えるように、半透明の白を維持 */
             background-color: rgba(255, 255, 255, 0.9); 
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -51,7 +49,7 @@
 
         h2 {
             color: #6aa84f;
-            border-left: 5px solid #6aa84f;
+            border-left: 5px solid solid #6aa84f;
             padding-left: 10px;
             margin-top: 25px;
             margin-bottom: 15px;
