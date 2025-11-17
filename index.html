@@ -8,12 +8,16 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            /* 背景画像の設定をRaw URLに更新 */
+            
+            /* 背景画像の設定 */
             background-image: url('https://raw.githubusercontent.com/suiuhyousoushimokorihu-jpg/suiuhyousoushimokorihu.github.io/main/681718873116706.jpg');
-            background-size: cover;      /* 画面全体を覆う */
-            background-repeat: no-repeat; /* 繰り返しなし */
-            background-attachment: fixed; /* スクロールしても固定 */
-            background-color: #333; /* 予備の色（背景が暗めなので黒に近い色に設定） */
+            
+            /* 修正点: 画像の表示サイズをビューポート全体に合わせる */
+            **background-size: 100% 100%;**
+            
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-color: #333;
         }
         
         /* コンテンツ全体を中央に寄せるための設定 */
@@ -22,16 +26,15 @@
             max-width: 800px;
             margin: 40px auto;
             padding: 20px;
-            /* 背景画像が透けて見えるように半透明の白を設定 */
             background-color: rgba(255, 255, 255, 0.85); 
             border-radius: 8px; 
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 影を濃くして浮き立たせる */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
             text-align: center;
             border: 1px solid #ccc;
         }
 
         h1, p, a {
-            color: #333; /* 背景に対して文字が読みやすいように色を調整 */
+            color: #333;
         }
         .link-section {
             margin-top: 20px;
