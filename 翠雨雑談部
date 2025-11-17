@@ -3,145 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💬 翠雨雑談部 メンバー募集中！自由でフレンドリーなコミュニティ</title>
+    <title>翠雨雑談部 メンバー募集中</title>
     <style>
-        /* --- 基本スタイル --- */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #2c2f33; 
-            color: #ffffff;
-            text-align: center;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
             padding: 20px;
-            margin: 0; /* マージンをリセット */
+            margin: 0;
         }
+
         .container {
-            /* 最大幅を設定し、それ以下では柔軟に縮小します */
             max-width: 800px;
             margin: 0 auto;
-            background-color: #36393f; 
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
         }
+
         h1 {
-            color: #7289da; 
-            font-size: 3em;
-            margin-bottom: 10px;
+            color: #38761d; /* 翠雨をイメージした濃い緑 */
+            text-align: center;
+            border-bottom: 3px solid #6aa84f;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            font-size: 2em;
         }
+
         h2 {
-            color: #ffffff;
-            border-bottom: 2px solid #4f545c;
-            padding-bottom: 5px;
-            margin-top: 30px;
+            color: #6aa84f;
+            border-left: 5px solid #6aa84f;
+            padding-left: 10px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.5em;
         }
-        .feature-list {
+
+        ul {
             list-style: none;
-            padding: 0;
-            text-align: left;
-            margin-top: 20px;
+            padding-left: 0;
         }
-        .feature-list li {
-            background-color: #4f545c;
-            padding: 12px 15px;
+
+        li {
+            background: #e6f3e6;
             margin-bottom: 10px;
-            border-radius: 5px;
-            font-size: 1.1em;
-            transition: background-color 0.2s;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #38761d;
         }
-        .feature-list li:hover {
-            background-color: #5c626c;
+
+        .highlight {
+            font-weight: bold;
+            color: #38761d;
         }
-        .join-button {
+
+        .link-section {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px dashed #ccc;
+        }
+
+        .invite-button {
             display: inline-block;
-            background-color: #2ecc71; 
+            background-color: #4a90e2; /* Discordをイメージした青 */
             color: white;
             padding: 15px 30px;
             text-decoration: none;
-            border-radius: 5px;
-            font-size: 1.5em;
+            border-radius: 8px;
+            font-size: 1.2em;
             font-weight: bold;
-            margin-top: 40px;
-            transition: background-color 0.3s;
-            /* 小さな画面でもボタンが適切に収まるようにします */
-            width: auto; 
+            transition: background-color 0.3s ease;
         }
-        .join-button:hover {
-            background-color: #27ae60;
+
+        .invite-button:hover {
+            background-color: #357bd8;
         }
-        .admin-link {
-            margin-top: 30px;
+
+        .note {
+            margin-top: 20px;
             font-size: 0.9em;
-            color: #99aab5;
-        }
-        .admin-link a {
-            color: #7289da;
-            text-decoration: none;
-        }
-        .admin-link a:hover {
-            text-decoration: underline;
-        }
-
-        /* --- レスポンシブ対応 (メディアクエリ) --- */
-
-        /* 画面幅が600px以下の場合の調整 (主にスマホ向け) */
-        @media (max-width: 600px) {
-            .container {
-                /* スマホでは左右のパディングを減らしてコンテンツを広く使います */
-                padding: 20px 15px;
-                border-radius: 0; /* スマホでは角丸をなくしても良い */
-            }
-            h1 {
-                /* フォントサイズを小さくして、画面に収まりやすくします */
-                font-size: 2em; 
-            }
-            p {
-                font-size: 1em;
-            }
-            .join-button {
-                /* ボタンを画面いっぱいに広げ、タップしやすくします */
-                width: 90%; 
-                font-size: 1.3em;
-                padding: 15px 0;
-            }
+            color: #777;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>翠雨雑談部</h1>
-        <p style="font-size: 1.3em; color: #b9bbbe;">
-            🍵 自由でフレンドリーな雑談空間！ゲーム、趣味、日常なんでも話せるコミュニティ 💬
-        </p>
+<div class="container">
+    <h1>🍵 翠雨雑談部 メンバー募集中 ☔</h1>
 
-        <h2>📜 サーバー概要と募集条件</h2>
-        <p style="text-align: left; line-height: 1.6;">
-            翠雨雑談部は、**年齢・性別問わず**、ルールとモラルを守れる方なら誰でも歓迎する雑談メインのコミュニティです。<br>
-            VC参加は自由（**聞き専も大歓迎**）なので、ご自身のペースで楽しめます。まずは気軽に覗いてみてください！
-        </p>
-
-        <h2>✨ このサーバーの魅力</h2>
-        <ul class="feature-list">
-            <li>✅ **自由な雑談空間**: 趣味、日常、ゲームなど、なんでも話せます。</li>
-            <li>🏆 **賞品ありの定期イベント**: サーバーに浮上するだけで参加OK！誰でも簡単に景品ゲットのチャンス！</li>
-            <li>🎮 **マルチ・フレンド募集**: 一緒に遊ぶ仲間をここで見つけましょう！</li>
-            <li>💎 **サーバーレベル3**: 豊富な絵文字・スタンプ、高品質なVC、大容量ファイル送信が可能！</li>
-            <li>📣 **他サーバーの宣伝もOK**: 積極的に交流を広げたい方も大歓迎。</li>
-            <li>🤝 **安心のサポート体制**: 困りごとや質問は、メンバーやモデレーターが丁寧にサポートします。</li>
-            <li>🏷️ **サーバータグ [翆雨廷]**：ぜひ使って盛り上げてください！</li>
+    <div class="content-section">
+        <h2>✅ 募集条件</h2>
+        <ul>
+            <li>年齢・性別は問いません！どなたでも歓迎します。</li>
+            <li><span class="highlight">VC参加は自由</span> (聞き専でも大歓迎です！)</li>
+            <li>ルールとモラルを守れる人なら誰でも歓迎！</li>
         </ul>
-
-        <a href="https://discord.gg/ub-nadutsaz-uius" target="_blank" class="join-button">
-            🚀 翠雨雑談部 に参加する！
-        </a>
-        <p style="margin-top: 15px; color: #99aab5;">↑上のボタンからすぐに参加できます↑</p>
-
-        <div class="admin-link">
-            管理者 X (旧Twitter) アカウント: 
-            <a href="https://x.com/shimokorihu" target="_blank">@shimokorihu</a>
-        </div>
-        
     </div>
+
+    <div class="content-section">
+        <h2>✨ サーバーの特徴</h2>
+        <ul>
+            <li>
+                <span class="highlight">自由でフレンドリーな雑談空間</span><br>
+                趣味・日常・ゲームなど、ジャンルを問わずなんでも話せます！
+            </li>
+            <li>
+                <span class="highlight">マルチプレイやフレンド募集も大歓迎！</span><br>
+                一緒に遊ぶ仲間を見つけましょう。
+            </li>
+            <li>
+                <span class="highlight">定期的に賞品ありのイベント開催！</span><br>
+                参加条件はサーバーに浮上するだけ！誰でも簡単に参加できます。
+            </li>
+            <li>
+                サーバータグ <span class="highlight">[翆雨廷]</span> あります。<br>
+                ぜひ使ってください！
+            </li>
+            <li>
+                <span class="highlight">サーバーレベル3</span>なので絵文字やスタンプが豊富！<br>
+                他にもVCの音質が良かったり、大容量のファイルを送れたりします！
+            </li>
+            <li>
+                <span class="highlight">他サーバーの宣伝もOK！</span><br>
+                あなたの活動も応援します。
+            </li>
+            <li>
+                困ったことや質問は、メンバーやモデレーターが丁寧にサポートしてくれるので安心です！
+            </li>
+        </ul>
+    </div>
+
+    <div class="link-section">
+        <h2>🚀 参加はこちらから！</h2>
+        <a href="https://discord.gg/ub-nadutsaz-uius" class="invite-button" target="_blank">
+            翠雨雑談部へ参加する
+        </a>
+        <p class="note">※招待リンクをクリックするとDiscordの招待画面に移動します。</p>
+    </div>
+</div>
 
 </body>
 </html>
