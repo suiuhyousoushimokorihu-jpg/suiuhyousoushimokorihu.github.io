@@ -5,16 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ようこそ！</title>
     <style>
+        html, body {
+            height: 100%; /* 画面全体に高さを合わせるために必要 */
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
+            /* Flexboxで上下中央揃えを設定 */
+            display: flex; /* ⬅️ Flexboxを有効にする */
+            justify-content: center; /* ⬅️ 水平方向（左右）の中央揃え */
+            align-items: center; /* ⬅️ 垂直方向（上下）の中央揃え */
             
             /* 背景画像の設定 */
             background-image: url('https://raw.githubusercontent.com/suiuhyousoushimokorihu-jpg/suiuhyousoushimokorihu.github.io/main/681718873116706.jpg');
-            
-            /* 修正点: 画像の表示サイズをビューポート全体に合わせる */
-            **background-size: 100% 100%;**
-            
+            background-size: 100% 100%;
             background-repeat: no-repeat;
             background-attachment: fixed;
             background-color: #333;
@@ -22,15 +28,20 @@
         
         /* コンテンツ全体を中央に寄せるための設定 */
         .container {
+            /* Flexboxの親要素（body）が中央揃えを行うため、
+               以前の margin: 40px auto; は不要ですが、
+               ここでは上下のマージンを削除し、左右中央揃えの margin: auto は維持します。 */
             width: 80%;
             max-width: 800px;
-            margin: 40px auto;
+            margin: auto; /* 左右中央揃えのため残す */
             padding: 20px;
             background-color: rgba(255, 255, 255, 0.85); 
             border-radius: 8px; 
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
-            text-align: center;
             border: 1px solid #ccc;
+
+            /* テキストをすべて中央揃えにする */
+            text-align: center;
         }
 
         h1, p, a {
