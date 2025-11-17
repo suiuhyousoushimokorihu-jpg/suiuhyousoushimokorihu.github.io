@@ -1,157 +1,165 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>翠雨雑談部 メンバー募集中</title>
-    <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            color: #333;
-            line-height: 1.6;
-            padding: 20px;
-            margin: 0;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>翠雨雑談部 メンバー募集中</title>
+    <style>
+        /* 削除: html, body の height: 100%; */
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
 
-            /* ===== 背景画像の設定を新しいPNGファイルに変更 ===== */
-            background-image: url('https://raw.githubusercontent.com/suiuhyousoushimokorihu-jpg/suiuhyousoushimokorihu.github.io/refs/heads/main/483920174650182.png'); /* 👈 ファイル名を変更 */
-            background-repeat: repeat; /* 👈 PNGのパターン画像を想定し、繰り返す設定に戻しました */
-            background-size: auto; /* 👈 サイズを元に戻すか、必要に応じて `cover` に変更してください */
-            background-color: #f4f7f6; /* 👈 元の背景色を復活させ、透過PNGに対応 */
-            background-attachment: scroll; /* 👈 スクロールに合わせて動く設定に戻す */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            /* 削除: Flexbox関連 (display: flex, justify-content: center, align-items: center) */
+
+            /* ===== 背景画像の設定 ===== */
+            background-image: url('https://raw.githubusercontent.com/suiuhyousoushimokorihu-jpg/suiuhyousoushimokorihu.github.io/refs/heads/main/483920174650182.png');
+            background-repeat: repeat;
+            background-size: auto; 
+            background-color: #f4f7f6;
+            background-attachment: scroll; 
             background-position: top left;
-            /* ================================= */
-        }
+            /* ========================= */
+        }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            /* 背景画像が見えるように、半透明の白を維持 */
-            background-color: rgba(255, 255, 255, 0.9); 
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-        }
+        .container {
+            max-width: 800px;
+            /* 左右中央揃えは維持。上下の margin を調整 */
+            margin: 40px auto; /* 上下に40pxのマージンを空け、左右は中央揃え */
+            
+            /* 背景画像が見えるように、半透明の白を維持 */
+            background-color: rgba(255, 255, 255, 0.9); 
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
 
-        h1 {
-            color: #38761d;
-            text-align: center;
-            border-bottom: 3px solid #6aa84f;
-            padding-bottom: 15px;
-            margin-bottom: 30px;
-            font-size: 2em;
-        }
+        h1 {
+            color: #38761d;
+            text-align: center;
+            border-bottom: 3px solid #6aa84f;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
 
-        h2 {
-            color: #6aa84f;
-            border-left: 5px solid #6aa84f;
-            padding-left: 10px;
-            margin-top: 25px;
-            margin-bottom: 15px;
-            font-size: 1.5em;
-        }
+        h2 {
+            color: #6aa84f;
+            border-left: 5px solid #6aa84f;
+            padding-left: 10px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
 
-        ul {
-            list-style: none;
-            padding-left: 0;
-        }
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
 
-        li {
-            background: #e6f3e6;
-            margin-bottom: 10px;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #38761d;
-        }
+        li {
+            background: #e6f3e6;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #38761d;
+        }
 
-        .highlight {
-            font-weight: bold;
-            color: #38761d;
-        }
+        .highlight {
+            font-weight: bold;
+            color: #38761d;
+        }
 
-        .link-section {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px dashed #ccc;
-        }
+        .link-section {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px dashed #ccc;
+        }
 
-        .invite-button {
-            display: inline-block;
-            background-color: #4a90e2;
-            color: white;
-            padding: 15px 30px;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 1.2em;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
+        .invite-button {
+            display: inline-block;
+            background-color: #4a90e2;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
 
-        .invite-button:hover {
-            background-color: #357bd8;
-        }
+        .invite-button:hover {
+            background-color: #357bd8;
+        }
 
-        .note {
-            margin-top: 20px;
-            font-size: 0.9em;
-            color: #777;
-        }
-    </style>
+        .note {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #777;
+        }
+    </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🍵 翠雨雑談部 メンバー募集中 ☔</h1>
+    <h1>🍵 翠雨雑談部 メンバー募集中 ☔</h1>
 
-    <div class="content-section">
-        <h2>✅ 募集条件</h2>
-        <ul>
-            <li>年齢・性別は問いません！どなたでも歓迎します。</li>
-            <li><span class="highlight">VC参加は自由</span> (聞き専でも大歓迎です！)</li>
-            <li>ルールとモラルを守れる人なら誰でも歓迎！</li>
-        </ul>
-    </div>
+    <div class="content-section">
+        <h2>✅ 募集条件</h2>
+        <ul>
+            <li>年齢・性別は問いません！どなたでも歓迎します。</li>
+            <li><span class="highlight">VC参加は自由</span> (聞き専でも大歓迎です！)</li>
+            <li>ルールとモラルを守れる人なら誰でも歓迎！</li>
+        </ul>
+    </div>
 
-    <div class="content-section">
-        <h2>✨ サーバーの特徴</h2>
-        <ul>
-            <li>
-                <span class="highlight">自由でフレンドリーな雑談空間</span><br>
-                趣味・日常・ゲームなど、ジャンルを問わずなんでも話せます！
-            </li>
-            <li>
-                <span class="highlight">マルチプレイやフレンド募集も大歓迎！</span><br>
-                一緒に遊ぶ仲間を見つけましょう。
-            </li>
-            <li>
-                <span class="highlight">定期的に賞品ありのイベント開催！</span><br>
-                参加条件はサーバーに浮上するだけ！誰でも簡単に参加できます。
-            </li>
-            <li>
-                サーバータグ <span class="highlight">[翆雨廷]</span> あります。<br>
-                ぜひ使ってください！
-            </li>
-            <li>
-                <span class="highlight">サーバーレベル3</span>なので絵文字やスタンプが豊富！<br>
-                他にもVCの音質が良かったり、大容量のファイルを送れたりします！
-            </li>
-            <li>
-                <span class="highlight">他サーバーの宣伝もOK！</span><br>
-                あなたの活動も応援します。
-            </li>
-            <li>
-                困ったことや質問は、メンバーやモデレーターが丁寧にサポートしてくれるので安心です！
-            </li>
-        </ul>
-    </div>
+    <div class="content-section">
+        <h2>✨ サーバーの特徴</h2>
+        <ul>
+            <li>
+                <span class="highlight">自由でフレンドリーな雑談空間</span><br>
+                趣味・日常・ゲームなど、ジャンルを問わずなんでも話せます！
+            </li>
+            <li>
+                <span class="highlight">マルチプレイやフレンド募集も大歓迎！</span><br>
+                一緒に遊ぶ仲間を見つけましょう。
+            </li>
+            <li>
+                <span class="highlight">定期的に賞品ありのイベント開催！</span><br>
+                参加条件はサーバーに浮上するだけ！誰でも簡単に参加できます。
+            </li>
+            <li>
+                サーバータグ <span class="highlight">[翆雨廷]</span> あります。<br>
+                ぜひ使ってください！
+            </li>
+            <li>
+                <span class="highlight">サーバーレベル3</span>なので絵文字やスタンプが豊富！<br>
+                他にもVCの音質が良かったり、大容量のファイルを送れたりします！
+            </li>
+            <li>
+                <span class="highlight">他サーバーの宣伝もOK！</span><br>
+                あなたの活動も応援します。
+            </li>
+            <li>
+                困ったことや質問は、メンバーやモデレーターが丁寧にサポートしてくれるので安心です！
+            </li>
+        </ul>
+    </div>
 
-    <div class="link-section">
-        <h2>🚀 参加はこちらから！</h2>
-        <a href="https://discord.gg/ub-nadutsaz-uius" class="invite-button" target="_blank">
-            翠雨雑談部へ参加する
-        </a>
-        <p class="note">※招待リンクをクリックするとDiscordの招待画面に移動します。</p>
-    </div>
+    <div class="link-section">
+        <h2>🚀 参加はこちらから！</h2>
+        <a href="https://discord.gg/ub-nadutsaz-uius" class="invite-button" target="_blank">
+            翠雨雑談部へ参加する
+        </a>
+        <p class="note">※招待リンクをクリックするとDiscordの招待画面に移動します。</p>
+    </div>
 </div>
 
 </body>
