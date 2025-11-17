@@ -5,14 +5,19 @@
     <title>翠雨雑談部</title>
     <style>
         body {
+            margin: 0;
+            padding: 50px;
             font-family: Arial, sans-serif;
-            background-image: url('images/background.jpg'); /* アップロード済み画像パス */
+
+            /* 背景画像 */
+            background-image: url('images/483920174650182.png'); /* 画像パス */
             background-size: cover;
             background-position: center;
+            background-repeat: no-repeat;
             background-attachment: fixed;
-            color: #fff;
-            text-align: center;
-            padding: 50px;
+
+            text-align: center; /* 全体中央揃え */
+            color: #fff; /* 文字色 */
         }
 
         h1 {
@@ -29,6 +34,8 @@
         ul {
             list-style: none;
             padding-left: 0;
+            display: inline-block; /* 中央揃えでブロック化 */
+            text-align: left;      /* リスト内は左揃え */
         }
 
         li {
@@ -37,18 +44,24 @@
 
         a {
             text-decoration: none;
-            color: #ffd700; /* リンク色を金色に */
+            color: #ffd700;
             font-weight: bold;
         }
 
         a:hover {
             text-decoration: underline;
         }
+
+        p {
+            line-height: 1.6; /* 読みやすい段落間隔 */
+            max-width: 800px; /* 横幅制限で読みやすく */
+            margin: 20px auto; /* 中央寄せ */
+            text-align: left;  /* 段落は左揃え */
+        }
     </style>
 </head>
 <body>
-    <!-- Welcomeメッセージ -->
-    <h1>Welcome to 翠雨雑談部ですわよ！</h1>
+    <h1>Welcome to 翠雨雑談部！</h1>
 
     <!-- 目次 -->
     <h2>目次</h2>
@@ -60,12 +73,12 @@
         <li><a href="翠雨雑談部/index.html">翠雨雑談部ページ</a></li>
     </ul>
 
-    <!-- 各セクション -->
+    <!-- セクション -->
     <h2 id="introduction">はじめに</h2>
-    <p>ここでは翠雨雑談部の紹介や目的を書きますのよ。</p>
+    <p>ここでは翠雨雑談部の紹介や目的を書きます。文章は普通に書くスタイルで、段落ごとに改行して読みやすくしています。</p>
 
     <h2 id="news">お知らせ</h2>
-    <p>最新の情報やイベントなどを掲載しますのよ。</p>
+    <p>最新の情報やイベントなどを掲載しますのよ。必要に応じて段落を分けて、文章を整理していますわ。</p>
 
     <h2 id="links">関連リンク</h2>
     <p><a href="https://github.com/username">GitHub リポジトリ</a></p>
