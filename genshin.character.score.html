@@ -197,7 +197,10 @@
 </div>
 
 <script>
+    // 【修正点】：APIとプロキシのURLを定義
     const BASE_URL = "https://enka.network/api/uid/";
+    const PROXY_URL = "https://corsproxy.io/?"; 
+    
     const MESSAGE_AREA = document.getElementById('result-message');
     const CARD_CONTAINER = document.getElementById('card-preview-container');
     const FETCH_BUTTON = document.getElementById('fetch-button');
@@ -277,7 +280,7 @@
         }
     };
     
-    // --- 【全キャラクターIDマップ】 ---
+    // --- 全キャラクターIDマップ ---
     const characterIdMap = {
         10000001: { name: "旅人(空)", icon: "Aether" },
         10000002: { name: "神里綾華", icon: "Ayaka" },
@@ -448,14 +451,17 @@
         checkTtlAndDisableButton(event.target.value.trim());
     });
 
-    // --- 1. データ取得機能 ---
+    // --- 1. データ取得機能 (プロキシ使用に修正) ---
     async function fetchBuildData() {
         const uid = document.getElementById('uid-input').value.trim();
-        const url = `${BASE_URL}${uid}/`;
         const lang = translations[currentLang];
         
         if (checkTtlAndDisableButton(uid)) return;
         
+        // 【修正点】：API URLをプロキシURLでラップし、エンコードする
+        const targetUrl = `${BASE_URL}${uid}/`;
+        const url = `${PROXY_URL}${encodeURIComponent(targetUrl)}`;
+
         resetDebugInfo();
         DEBUG_CONTENT.classList.remove('hidden');
         DEBUG_HEADER.classList.remove('collapsed');
@@ -533,7 +539,6 @@
             const charData = characterIdMap[avatar.avatarId] || { name: `ID:${avatar.avatarId}`, icon: 'Unknown' };
             const stats = avatar.fightProp;
             const cardId = `card-${avatar.avatarId}-${Date.now()}`;
-            // アイコンURLの取得とCORS対策の crossorigin="anonymous"
             const iconUrl = `https://enka.network/ui/avataricon/${charData.icon}.png`;
 
             let statHtml = '';
