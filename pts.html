@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord ポイント統計</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #7289da; text-align: center; margin-bottom: 20px; }
+        h2 { border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-top: 0; }
+        .tabs { display: flex; margin-bottom: 0; border-bottom: 2px solid #ccc; }
+        .tab-button { 
+            padding: 10px 15px; cursor: pointer; border: 1px solid #ccc; border-bottom: none; 
+            background: #eee; font-weight: bold; margin-bottom: -2px; 
+            transition: background 0.2s, color 0.2s; border-top-left-radius: 5px; border-top-right-radius: 5px;
+            z-index: 1; 
+        }
+        .tab-button.active { 
+            background: #fff; color: #7289da; border-color: #ccc; border-bottom-color: #fff; 
+        }
+        .content-section { 
+            padding: 15px; background: #fff; border: 1px solid #ccc; 
+            border-top: none; 
+            border-bottom-left-radius: 5px; border-bottom-right-radius: 5px;
+            min-height: 300px; 
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ddd; white-space: nowrap; }
+        th { background-color: #7289da; color: white; font-weight: 600; cursor: pointer; }
+        tr:hover { background-color: #f1f1f1; }
+        .rank-number { font-size: 1.2em; font-weight: bold; color: #36393f; }
+        .sort-indicator { margin-left: 5px; font-size: 0.8em; }
+        .error { color: red; text-align: center; font-weight: bold; }
+        .loading { text-align: center; color: #555; }
+        #guildIdInput, button { padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+        button { background-color: #5865f2; color: white; cursor: pointer; border: none; }
+        button:hover { background-color: #4752c4; }
+        .logs-table th:nth-child(1), .logs-table td:nth-child(1) { width: 10%; }
+        .logs-table th:nth-child(2), .logs-table td:nth-child(2) { width: 15%; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Discord ポイント統計ダッシュボード</h1>
+        <p id="current-time" style="text-align: right; margin-top: -10px; font-size: 0.9em; color: #555;">現在時刻を読み込み中...</p>
+        
+        <p>※ ボットが起動し、Web APIサーバーが動作している必要があります。</p>
+
+        <label for="guildIdInput">サーバーIDを入力してください:</label>
+        <input type="text" id="guildIdInput" value="1249724116857257984" style="width: 250px; margin-right: 10px;">
+        <button onclick="loadData()">データを取得</button>
+
+        <hr>
+
+        <div id="tabs" class="tabs">
+            <div class="tab-button active" data-target="ranking">🏆 総合ポイント</div>
+            <div class="tab-button" data-target="daily_logs">📊 日別獲得ログ (全期間)</div>
+            <div class="tab-button" data-target="yesterday_stats">🗓️ 昨日の獲得統計</div>
+        </div>
+
+        <div class="content-section">
+            <div id="ranking" class="tab-content">
+                <h2>総合ポイントランキング</h2>
+                <div id="ranking-content"></div>
+            </div>
+            <div id="daily_logs" class="tab-content" style="display: none;">
+                <h2>日別獲得ログ (全期間)</h2>
+                <div id="daily_logs-content"></div>
+            </div>
+            <div id="yesterday_stats" class="tab-content" style="display: none;">
+                <h2 id="yesterday-title">昨日の獲得統計</h2>
+                <div id="yesterday_stats-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+        let currentGuildId = '1249724116857257984';
+        let activeTab = 'ranking';
+        let currentRankingData = []; 
+        let currentLogsData = [];
+        
+        // 日付が変わったかをチェックするために現在の日付を保持する変数
+        let currentDay = ''; 
+
+        // 🔽 修正された getYesterdayDateString 関数 🔽
+        function getYesterdayDateString() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            
+            // 確実に1日戻す
+            yesterday.setDate(today.getDate() - 1); 
+            
+            // 日本時間 (JST) で YYYY-MM-DD 形式にフォーマットする
+            // timeZone: 'Asia/Tokyo' を明示することで、ブラウザのタイムゾーン設定に依存せずJSTで計算させる
+            const options = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Tokyo' };
+            
+            // toLocaleDateString の出力例: '2025/11/17' (ja-JPロケールを使用)
+            const formattedDate = yesterday.toLocaleDateString('ja-JP', options);
+            
+            // '2025/11/17' を '2025-11-17' に変換して返す
+            return formattedDate.replace(/\//g, '-'); 
+        }
+        // 🔼 修正された getYesterdayDateString 関数 🔼
+
+
+        async function loadData() {
+            const guildId = document.getElementById('guildIdInput').value.trim();
+            if (!guildId) {
+                alert('サーバーIDを入力してください。');
+                return;
+            }
+            currentGuildId = guildId;
+            
+            document.getElementById('ranking-content').innerHTML = '<p class="loading">ランキングデータを読み込み中...</p>';
+            document.getElementById('daily_logs-content').innerHTML = '<p class="loading">ログデータを読み込み中...</p>';
+            document.getElementById('yesterday_stats-content').innerHTML = `<p class="loading">昨日の統計データ (${getYesterdayDateString()}) を読み込み中...</p>`;
+
+            await fetchRanking();
+            await fetchLogs();
+
+            renderRankingTable(currentRankingData, 'total_points', 'desc');
+            renderDailyLogsTable(currentLogsData, 'log_date', 'desc');
+            renderYesterdayStatsTable(currentLogsData); 
+        }
+
+        async function fetchRanking() { 
+            try {
+                const response = await fetch(`${API_BASE_URL}/members/${currentGuildId}`);
+                const data = await response.json();
+                
+                if (response.status !== 200 || data.error) {
+                    document.getElementById('ranking-content').innerHTML = `<p class="error">エラー: ${data.error || 'データ取得に失敗しました。サーバーIDを確認してください。'}</p>`;
+                    currentRankingData = [];
+                    return;
+                }
+
+                currentRankingData = data;
+            } catch (error) {
+                document.getElementById('ranking-content').innerHTML = '<p class="error">API接続に失敗しました。ボットのWebサーバーが起動しているか確認してください。</p>';
+                currentRankingData = [];
+            }
+        }
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/logs/${currentGuildId}`);
+                const data = await response.json();
+                
+                if (response.status !== 200 || data.error) {
+                    document.getElementById('daily_logs-content').innerHTML = `<p class="error">エラー: ${data.error || 'データ取得に失敗しました。サーバーIDを確認してください。'}</p>`;
+                    document.getElementById('yesterday_stats-content').innerHTML = `<p class="error">エラー: ${data.error || 'データ取得に失敗しました。サーバーIDを確認してください。'}</p>`;
+                    currentLogsData = [];
+                    return;
+                }
+
+                currentLogsData = data;
+            } catch (error) {
+                document.getElementById('daily_logs-content').innerHTML = '<p class="error">API接続に失敗しました。ボットのWebサーバーが起動しているか確認してください。</p>';
+                document.getElementById('yesterday_stats-content').innerHTML = '<p class="error">API接続に失敗しました。ボットのWebサーバーが起動しているか確認してください。</p>';
+                currentLogsData = [];
+            }
+        }
+
+        function renderRankingTable(data, sortBy, sortOrder) {
+            const container = document.getElementById('ranking-content');
+            if (data.length === 0) {
+                container.innerHTML = '<p class="loading">表示するデータがありません。</p>';
+                return;
+            }
+
+            data.sort((a, b) => {
+                const valA = a[sortBy];
+                const valB = b[sortBy];
+                let comparison = 0;
+                if (valA > valB) comparison = 1;
+                else if (valA < valB) comparison = -1;
+                return sortOrder === 'desc' ? (comparison * -1) : comparison;
+            });
+
+            let html = `
+                <table data-sort-by="${sortBy}" data-sort-order="${sortOrder}">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('ranking', 'rank')">順位 <span class="sort-indicator">${sortBy === 'rank' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</span></th>
+                            <th onclick="sortTable('ranking', 'username')">ユーザー名 <span class="sort-indicator">${sortBy === 'username' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</span></th>
+                            <th onclick="sortTable('ranking', 'total_points')">総ポイント <span class="sort-indicator">${sortBy === 'total_points' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.forEach(item => {
+                html += `
+                    <tr>
+                        <td class="rank-number">${item.rank}</td>
+                        <td>${item.username}</td>
+                        <td>${item.total_points.toLocaleString()} P</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function renderDailyLogsTable(data, sortBy, sortOrder) {
+            const container = document.getElementById('daily_logs-content');
+            if (data.length === 0) {
+                container.innerHTML = '<p class="loading">表示するデータがありません。</p>';
+                return;
+            }
+
+            data.sort((a, b) => {
+                const valA = a[sortBy];
+                const valB = b[sortBy];
+                let comparison = 0;
+                if (valA > valB) comparison = 1;
+                else if (valA < valB) comparison = -1;
+                return sortOrder === 'desc' ? (comparison * -1) : comparison;
+            });
+
+            let html = `
+                <table class="logs-table" data-sort-by="${sortBy}" data-sort-order="${sortOrder}">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('daily_logs', 'log_date')">日付 <span class="sort-indicator">${sortBy === 'log_date' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</span></th>
+                            <th onclick="sortTable('daily_logs', 'username')">ユーザー名 <span class="sort-indicator">${sortBy === 'username' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</span></th>
+                            <th onclick="sortTable('daily_logs', 'total_earned_today')">合計獲得P <span class="sort-indicator">${sortBy === 'total_earned_today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</span></th>
+                            
+                            <th onclick="sortTable('daily_logs', 'count_message')">メッセージ数 <span class="sort-indicator">${sortBy === 'count_message' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</span></th>
+                            <th>メッセージP</th>
+                            
+                            <th onclick="sortTable('daily_logs', 'count_vc_minutes')">VC時間(分) <span class="sort-indicator">${sortBy === 'count_vc_minutes' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</span></th>
+                            <th>VC合計P</th>
+
+                            <th>ガチャP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.forEach(item => {
+                html += `
+                    <tr>
+                        <td>${item.log_date}</td>
+                        <td>${item.username}</td>
+                        <td>${item.total_earned_today.toLocaleString()} P</td>
+                        
+                        <td>${item.count_message.toLocaleString()} 通</td>
+                        <td>${item.sources.message.toLocaleString()} P</td>
+                        
+                        <td>${item.count_vc_minutes.toLocaleString()} 分</td>
+                        <td>${item.sources.vc.toLocaleString()} P</td>
+                        
+                        <td>${item.sources.gacha.toLocaleString()} P</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function renderYesterdayStatsTable(data) {
+            const yesterdayDate = getYesterdayDateString();
+            
+            document.getElementById('yesterday-title').textContent = `昨日の獲得統計 (${yesterdayDate})`;
+
+            const yesterdayData = data.filter(item => item.log_date === yesterdayDate);
+            const container = document.getElementById('yesterday_stats-content');
+            
+            if (yesterdayData.length === 0) {
+                container.innerHTML = `<p class="loading">昨日 (${yesterdayDate}) の獲得データはありません。</p>`;
+                return;
+            }
+
+            yesterdayData.sort((a, b) => b.total_earned_today - a.total_earned_today);
+
+            let html = `
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>ユーザー名</th>
+                            <th>合計獲得P</th>
+                            <th>メッセージ数</th>
+                            <th>メッセージP</th>
+                            <th>VC時間(分)</th>
+                            <th>VC合計P</th>
+                            <th>ガチャP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            yesterdayData.forEach(item => {
+                html += `
+                    <tr>
+                        <td>${item.username}</td>
+                        <td>${item.total_earned_today.toLocaleString()} P</td>
+                        <td>${item.count_message.toLocaleString()} 通</td>
+                        <td>${item.sources.message.toLocaleString()} P</td>
+                        <td>${item.count_vc_minutes.toLocaleString()} 分</td>
+                        <td>${item.sources.vc.toLocaleString()} P</td>
+                        <td>${item.sources.gacha.toLocaleString()} P</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+
+        function sortTable(tabName, sortBy) {
+            let data;
+            let renderFunc;
+
+            if (tabName === 'ranking') {
+                data = currentRankingData;
+                renderFunc = renderRankingTable;
+            } else if (tabName === 'daily_logs') {
+                data = currentLogsData;
+                renderFunc = renderDailyLogsTable;
+            } else {
+                return;
+            }
+
+            const container = document.getElementById(`${tabName}-content`);
+            const table = container.querySelector('table');
+            
+            let sortOrder = table.getAttribute('data-sort-order');
+            const currentSortBy = table.getAttribute('data-sort-by');
+            
+            if (currentSortBy === sortBy) {
+                sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                if (sortBy === 'username' || sortBy === 'rank' || sortBy === 'log_date') {
+                    sortOrder = 'asc';
+                } else {
+                    sortOrder = 'desc';
+                }
+            }
+            
+            if (tabName === 'daily_logs' && sortBy === 'log_date') {
+                sortOrder = sortOrder === 'asc' ? 'asc' : 'desc';
+            }
+
+            renderFunc(data, sortBy, sortOrder);
+        }
+
+        function switchTab(targetId) {
+            if (activeTab === targetId) return;
+
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.tab-button[data-target="${targetId}"]`).classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+            document.getElementById(targetId).style.display = 'block';
+
+            activeTab = targetId;
+        }
+        
+        // --- 🔽 追加機能: 時刻更新と日またぎチェック 🔽 ---
+        
+        /**
+         * 現在時刻を更新し、日が変わった場合はページをリロードする
+         */
+        function updateTimeAndCheckDayChange() {
+            const now = new Date();
+            
+            // 時刻のフォーマット (例: 2025/11/18 02:08:00)
+            const timeOptions = { 
+                year: 'numeric', month: '2-digit', day: '2-digit', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', 
+                hour12: false,
+                timeZone: 'Asia/Tokyo' // JSTを強制
+            };
+            const formattedTime = now.toLocaleDateString('ja-JP', timeOptions);
+            
+            // 日付の文字列 (例: 2025-11-18)
+            const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Tokyo' };
+            const today = now.toLocaleDateString('ja-JP', dateOptions).replace(/\//g, '-');
+
+            // 1. 時刻表示を更新
+            document.getElementById('current-time').textContent = `現在時刻: ${formattedTime}`;
+
+            // 2. 日が変わったかどうかのチェック
+            if (currentDay === '') {
+                // 初回設定
+                currentDay = today;
+            } else if (currentDay !== today) {
+                // 日をまたいだ場合、ページを更新して最新データを取得
+                console.log(`日をまたぎました (${currentDay} -> ${today})。ページを自動更新します。`);
+                location.reload();
+            }
+        }
+
+        // --- 🔼 追加機能: 時刻更新と日またぎチェック 🔼 ---
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.getElementById('tabs');
+            
+            tabs.addEventListener('click', (e) => {
+                const targetButton = e.target.closest('.tab-button');
+                if (targetButton) {
+                    const targetId = targetButton.getAttribute('data-target');
+                    switchTab(targetId);
+                }
+            });
+            
+            // ページロード時に時刻表示とデータ取得を実行
+            updateTimeAndCheckDayChange(); 
+            loadData();
+
+            // 60秒（60000ミリ秒）ごとに時刻チェックを繰り返す
+            setInterval(updateTimeAndCheckDayChange, 60000); 
+        });
+    </script>
+</body>
+</html>
