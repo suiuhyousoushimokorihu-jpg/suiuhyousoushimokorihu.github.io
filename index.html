@@ -5,37 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ようこそ！</title>
     <style>
+        /* 画面いっぱいの高さとマージンリセット */
         html, body {
-            height: 100%; /* 画面全体に高さを合わせるために必要 */
+            height: 100%;
             margin: 0;
             padding: 0;
         }
 
         body {
             font-family: Arial, sans-serif;
-            /* Flexboxで上下中央揃えを設定 */
-            display: flex; /* ⬅️ Flexboxを有効にする */
-            justify-content: center; /* ⬅️ 水平方向（左右）の中央揃え */
-            align-items: center; /* ⬅️ 垂直方向（上下）の中央揃え */
+            
+            /* Flexboxで上下左右中央揃え */
+            display: flex;
+            justify-content: center; /* 水平中央 */
+            align-items: center;   /* 垂直中央 */
             
             /* 背景画像の設定 */
             background-image: url('https://raw.githubusercontent.com/suiuhyousoushimokorihu-jpg/suiuhyousoushimokorihu.github.io/main/681718873116706.jpg');
-            background-size: 100% 100%;
+            
+            /* 修正点: 縦横比を維持して画面全体を覆う (歪まない) */
+            background-size: cover; 
+            
             background-repeat: no-repeat;
             background-attachment: fixed;
             background-color: #333;
+            background-position: center center; /* 画像を中央に配置 */
         }
         
-        /* コンテンツ全体を中央に寄せるための設定 */
+        /* コンテンツブロックの設定 */
         .container {
-            /* Flexboxの親要素（body）が中央揃えを行うため、
-               以前の margin: 40px auto; は不要ですが、
-               ここでは上下のマージンを削除し、左右中央揃えの margin: auto は維持します。 */
             width: 80%;
             max-width: 800px;
-            margin: auto; /* 左右中央揃えのため残す */
+            /* Flexbox (body) が中央配置を行うため、margin: auto はなくても中央に配置されますが、
+               安全のため維持し、上下のマージンは不要なため削除しました。 */
+            margin: auto; 
             padding: 20px;
+            
+            /* 背景画像が見える半透明の白 */
             background-color: rgba(255, 255, 255, 0.85); 
+            
             border-radius: 8px; 
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
             border: 1px solid #ccc;
