@@ -6,10 +6,10 @@
     <title>原神 ビルドカードジェネレーター (Enka.Network)</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
-        /* --- 全体デザイン --- */
+        /* --- 全体デザイン (変更なし) --- */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1a1a2e; /* ダークでゲーム風の背景 */
+            background-color: #1a1a2e;
             color: #e0e0e0;
             padding: 20px;
             text-align: center;
@@ -23,7 +23,7 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
         }
         h1 {
-            color: #f7d794; /* ゴールド系の強調色 */
+            color: #f7d794;
             margin-bottom: 20px;
         }
         input[type="text"], button {
@@ -40,7 +40,7 @@
             color: #ffffff;
         }
         button {
-            background-color: #833471; /* 紫系のボタン */
+            background-color: #833471;
             color: white;
             cursor: pointer;
         }
@@ -48,12 +48,30 @@
             background-color: #a34e8e;
         }
         .error {
-            color: #ff6b6b; /* 赤系のエラー色 */
+            color: #ff6b6b;
             font-weight: bold;
             margin-top: 15px;
         }
 
-        /* --- キャラクターカードのグリッド表示 --- */
+        /* --- デバッグ情報エリア --- */
+        #debug-info {
+            margin-top: 25px;
+            padding: 15px;
+            border: 1px dashed #5e81ac;
+            background-color: #1a1a2e;
+            text-align: left;
+            font-size: 0.9em;
+            overflow-wrap: break-word; /* URLが長い場合の折り返し */
+        }
+        #debug-info h3 {
+            color: #88c0d0;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .status-success { color: #a3be8c; }
+        .status-error { color: #bf616a; }
+
+        /* --- カード表示・ダウンロードアクション (変更なし) --- */
         #card-preview-container {
             margin-top: 30px;
             display: grid;
@@ -61,7 +79,6 @@
             gap: 25px;
             text-align: left;
         }
-        /* --- ビルドカードのデザイン --- */
         .build-card {
             background-color: #1e1e40;
             padding: 15px;
@@ -98,15 +115,10 @@
             font-size: 1em;
             border-bottom: 1px dotted #4a4a7a;
         }
-        .stat-line:last-child {
-            border-bottom: none;
-        }
         .stat-value {
-            color: #90ee90; /* 明るい緑 */
+            color: #90ee90;
             font-weight: bold;
         }
-
-        /* --- 画像生成ボタンエリア --- */
         .download-actions {
             text-align: center;
             margin-top: 10px;
@@ -126,12 +138,19 @@
 
 <div class="container">
     <h1>⚔️ 原神 ビルドカードジェネレーター</h1>
-    <p>プロフィールが公開されているUIDを入力し、カードを生成してください。</p>
+    <p>プロフィールが公開されているUIDを入力してください。</p>
 
     <input type="text" id="uid-input" placeholder="原神 UID (例: 618285856)">
     <button onclick="fetchBuildData()">ビルド情報取得 & カード表示</button>
 
     <div id="result-message"></div>
+    
+    <div id="debug-info">
+        <h3>通信/デバッグ情報</h3>
+        <p id="debug-url">URL:</p>
+        <p id="debug-status">HTTPステータス:</p>
+        <p id="debug-message">メッセージ:</p>
+    </div>
 
     <div id="card-preview-container">
         </div>
@@ -141,8 +160,11 @@
     const BASE_URL = "https://enka.network/api/uid/";
     const MESSAGE_AREA = document.getElementById('result-message');
     const CARD_CONTAINER = document.getElementById('card-preview-container');
+    const DEBUG_URL = document.getElementById('debug-url');
+    const DEBUG_STATUS = document.getElementById('debug-status');
+    const DEBUG_MESSAGE = document.getElementById('debug-message');
 
-    // 取得したキャラクターIDをキャラクター名に変換するための辞書 (一部)
+    // キャラクターIDマップやStatMappingは前回のコードと同じ
     const characterIdMap = {
         10000002: { name: "神里綾華", icon: "Ayaka" },
         10000003: { name: "ジン", icon: "Jean" },
@@ -153,58 +175,84 @@
         10000020: { name: "ディルック", icon: "Diluc" },
         10000021: { name: "香菱", icon: "Xiangling" },
         10000022: { name: "ベネット", icon: "Bennett" },
-        // ★★★ 必要なキャラクターIDをここに追加してください ★★★
+        // ... (必要なキャラクターIDをここに追加)
     };
     
-    // ステータスと日本語名をマッピング
     const statMapping = {
-        'FIGHT_PROP_HP': 'HP (体力)',
-        'FIGHT_PROP_ATTACK': '攻撃力',
-        'FIGHT_PROP_DEFENSE': '防御力',
-        'FIGHT_PROP_CRITICAL': '会心率',
+        'FIGHT_PROP_HP': 'HP (体力)', 'FIGHT_PROP_ATTACK': '攻撃力',
+        'FIGHT_PROP_DEFENSE': '防御力', 'FIGHT_PROP_CRITICAL': '会心率',
         'FIGHT_PROP_CRITICAL_HURT': '会心ダメージ',
         'FIGHT_PROP_CHARGE_EFFICIENCY': '元素チャージ効率',
         'FIGHT_PROP_ELEMENT_MASTERY': '元素熟知',
     };
 
-    // --- 1. データ取得機能 ---
+    // --- ユーティリティ: デバッグ情報のリセット ---
+    function resetDebugInfo() {
+        DEBUG_URL.innerHTML = `URL:`;
+        DEBUG_STATUS.innerHTML = `HTTPステータス:`;
+        DEBUG_MESSAGE.innerHTML = `メッセージ:`;
+        DEBUG_STATUS.className = '';
+    }
+
+    // --- 1. データ取得機能 (修正) ---
     async function fetchBuildData() {
         const uid = document.getElementById('uid-input').value.trim();
+        const url = `${BASE_URL}${uid}/`;
+        
+        resetDebugInfo();
         MESSAGE_AREA.innerHTML = '<p style="color: #90ee90;">データ取得中... しばらくお待ちください。</p>';
         CARD_CONTAINER.innerHTML = '';
         
+        DEBUG_URL.innerHTML = `URL: <strong>${url}</strong>`;
+
         if (!/^\d{9}$/.test(uid)) {
             MESSAGE_AREA.innerHTML = '<p class="error">⚠️ 有効な9桁のUIDを入力してください。</p>';
+            DEBUG_MESSAGE.innerHTML = `メッセージ: <strong>UIDの入力形式が不正です。</strong>`;
             return;
         }
 
         try {
-            const response = await fetch(`${BASE_URL}${uid}/`);
+            const response = await fetch(url);
+            const status = response.status;
             
+            DEBUG_STATUS.innerHTML = `HTTPステータス: <strong>${status}</strong>`;
+
             if (!response.ok) {
-                const status = response.status;
                 const errorMessages = {
                     400: "UIDの形式が不正です。", 404: "プレイヤーが存在しません。",
                     424: "ゲームメンテナンス中です。", 429: "レートリミット超過です。",
-                    500: "APIサーバーエラーが発生しました。", 503: "APIサービス一時停止中です。",
+                    500: "Enka.NetWorkサーバーエラーが発生しました。", 503: "APIサービス一時停止中です。",
                 };
-                MESSAGE_AREA.innerHTML = `<p class="error">❌ エラー: ${errorMessages[status] || `不明なエラーが発生しました (コード: ${status})`}</p>`;
+                const apiMessage = errorMessages[status] || `不明なエラーが発生しました。`;
+                
+                MESSAGE_AREA.innerHTML = `<p class="error">❌ ${apiMessage}</p>`;
+                DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-error">${apiMessage}</strong>`;
+                DEBUG_STATUS.className = 'status-error';
                 return;
             }
 
             const data = await response.json();
+            
+            DEBUG_STATUS.className = 'status-success';
+            DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-success">データを正常に受信しました。</strong>`;
+
             renderCards(data);
 
         } catch (error) {
+            // サーバーとの接続自体に失敗した場合 (通信エラー、CORSなど)
             MESSAGE_AREA.innerHTML = '<p class="error">❌ 通信エラー: サーバーとの接続に失敗しました。</p>';
+            DEBUG_STATUS.innerHTML = `HTTPステータス: <strong>接続不可</strong>`;
+            DEBUG_MESSAGE.innerHTML = `<strong class="status-error">JavaScriptのFetch APIが接続を拒否しました (CORSまたはネットワークエラー)。</strong>`;
+            DEBUG_STATUS.className = 'status-error';
             console.error('Fetch Error:', error);
         }
     }
 
-    // --- 2. カード表示機能 ---
+    // --- 2. カード表示機能 (変更なし、以前の関数を保持) ---
     function renderCards(data) {
         if (!data.avatarInfoList || data.avatarInfoList.length === 0) {
             MESSAGE_AREA.innerHTML = '<p class="error">⚠️ プロフィールが非公開、またはキャラクターが設定されていません。</p>';
+            DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-error">APIからキャラクター情報が返されませんでした。</strong>`;
             return;
         }
         
@@ -213,15 +261,11 @@
         data.avatarInfoList.forEach(avatar => {
             const charData = characterIdMap[avatar.avatarId] || { name: `ID:${avatar.avatarId}`, icon: 'Unknown' };
             const stats = avatar.fightProp;
-            
             const cardId = `card-${avatar.avatarId}-${Date.now()}`;
-            
-            // キャラクターアイコンURL (Enka.Networkの公開アセットを使用)
             const iconUrl = `https://enka.network/ui/avataricon/${charData.icon}.png`;
 
             let statHtml = '';
             if (stats) {
-                // HP, 攻撃力, 防御力は基礎値とボーナス値を合算
                 const totalHp = Math.round(stats['FIGHT_PROP_HP'] + stats['FIGHT_PROP_BASE_HP']);
                 const totalAtk = Math.round(stats['FIGHT_PROP_ATTACK'] + stats['FIGHT_PROP_BASE_ATTACK']);
                 const totalDef = Math.round(stats['FIGHT_PROP_DEFENSE'] + stats['FIGHT_PROP_BASE_DEFENSE']);
@@ -229,19 +273,14 @@
                 statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_HP']}:</span> <span class="stat-value">${totalHp}</span></div>`;
                 statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_ATTACK']}:</span> <span class="stat-value">${totalAtk}</span></div>`;
                 statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_DEFENSE']}:</span> <span class="stat-value">${totalDef}</span></div>`;
-                
-                // 率系のステータス
                 statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_CRITICAL']}:</span> <span class="stat-value">${(stats['FIGHT_PROP_CRITICAL'] * 100).toFixed(1)}%</span></div>`;
                 statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_CRITICAL_HURT']}:</span> <span class="stat-value">${(stats['FIGHT_PROP_CRITICAL_HURT'] * 100).toFixed(1)}%</span></div>`;
                 statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_CHARGE_EFFICIENCY']}:</span> <span class="stat-value">${(stats['FIGHT_PROP_CHARGE_EFFICIENCY'] * 100).toFixed(1)}%</span></div>`;
-                
-                // 元素熟知
                 statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_ELEMENT_MASTERY']}:</span> <span class="stat-value">${Math.round(stats['FIGHT_PROP_ELEMENT_MASTERY'])}</span></div>`;
             } else {
                 statHtml = '<p>詳細ステータス情報なし</p>';
             }
 
-            // カード全体のHTML構造を生成
             const cardHtml = `
                 <div class="build-card" id="${cardId}">
                     <div class="card-header">
@@ -256,29 +295,25 @@
                 </div>
             `;
             
-            // カードとダウンロードボタンをコンテナに追加
             const wrapper = document.createElement('div');
             wrapper.innerHTML = cardHtml;
             CARD_CONTAINER.appendChild(wrapper);
         });
     }
 
-    // --- 3. 画像生成＆ダウンロード機能 (html2canvas使用) ---
+    // --- 3. 画像生成＆ダウンロード機能 (変更なし) ---
     function generateAndDownloadCard(cardElementId, charName) {
         const cardElement = document.getElementById(cardElementId);
-        
-        // ダウンロードボタンを非表示にして画像に含めないようにする
         const actions = cardElement.nextElementSibling;
         actions.style.display = 'none';
 
         MESSAGE_AREA.innerHTML = '<p style="color: #90ee90;">画像生成中...</p>';
 
         html2canvas(cardElement, {
-            scale: 2, // 高解像度でキャプチャ
-            useCORS: true, // クロスオリジン画像を扱う
-            allowTaint: true // 画像の汚染を許可
+            scale: 2, 
+            useCORS: true, 
+            allowTaint: true
         }).then(canvas => {
-            // 画像をダウンロード
             const link = document.createElement('a');
             link.download = `${charName}_ビルドカード_${new Date().toLocaleDateString()}.png`;
             link.href = canvas.toDataURL('image/png');
@@ -287,14 +322,11 @@
             document.body.removeChild(link);
 
             MESSAGE_AREA.innerHTML = '<p style="color: #90ee90;">✅ ダウンロードが完了しました。</p>';
-            
-            // ダウンロードボタンを再表示
             actions.style.display = 'block';
 
         }).catch(err => {
             MESSAGE_AREA.innerHTML = `<p class="error">❌ 画像生成エラー: ${err.message || 'キャプチャに失敗しました。'}</p>`;
             console.error('html2canvas error:', err);
-            // エラー時もボタンを再表示
             actions.style.display = 'block';
         });
     }
