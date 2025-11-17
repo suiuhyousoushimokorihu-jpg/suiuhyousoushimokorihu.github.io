@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>原神 ビルドカードジェネレーター (Enka.Network)</title>
+    <title id="app-title">原神 ビルドカードジェネレーター</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
-        /* --- 全体デザイン (変更なし) --- */
+        /* --- 全体デザイン --- */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #1a1a2e;
@@ -26,7 +26,7 @@
             color: #f7d794;
             margin-bottom: 20px;
         }
-        input[type="text"], button {
+        input[type="text"], button, select {
             padding: 12px;
             border-radius: 8px;
             border: 1px solid #4a4a7a;
@@ -61,7 +61,7 @@
             background-color: #1a1a2e;
             text-align: left;
             font-size: 0.9em;
-            overflow-wrap: break-word; /* URLが長い場合の折り返し */
+            overflow-wrap: break-word;
         }
         #debug-info h3 {
             color: #88c0d0;
@@ -71,7 +71,7 @@
         .status-success { color: #a3be8c; }
         .status-error { color: #bf616a; }
 
-        /* --- カード表示・ダウンロードアクション (変更なし) --- */
+        /* --- カード表示 --- */
         #card-preview-container {
             margin-top: 30px;
             display: grid;
@@ -137,16 +137,20 @@
 <body>
 
 <div class="container">
-    <h1>⚔️ 原神 ビルドカードジェネレーター</h1>
-    <p>プロフィールが公開されているUIDを入力してください。</p>
+    <select id="lang-switcher" onchange="switchLanguage()" style="float: right; margin-bottom: 15px;">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+    </select>
+    <h1 id="main-title">⚔️ 原神 ビルドカードジェネレーター</h1>
+    <p id="desc-text">プロフィールが公開されているUIDを入力してください。</p>
 
     <input type="text" id="uid-input" placeholder="原神 UID (例: 618285856)">
-    <button onclick="fetchBuildData()">ビルド情報取得 & カード表示</button>
+    <button id="fetch-button" onclick="fetchBuildData()">ビルド情報取得 & カード表示</button>
 
     <div id="result-message"></div>
     
     <div id="debug-info">
-        <h3>通信/デバッグ情報</h3>
+        <h3 id="debug-title">通信/デバッグ情報</h3>
         <p id="debug-url">URL:</p>
         <p id="debug-status">HTTPステータス:</p>
         <p id="debug-message">メッセージ:</p>
@@ -163,29 +167,99 @@
     const DEBUG_URL = document.getElementById('debug-url');
     const DEBUG_STATUS = document.getElementById('debug-status');
     const DEBUG_MESSAGE = document.getElementById('debug-message');
+    let currentLang = 'ja'; // 初期言語設定
 
-    // キャラクターIDマップやStatMappingは前回のコードと同じ
+    // --- 0. 多言語対応データ ---
+    const translations = {
+        ja: {
+            title: "⚔️ 原神 ビルドカードジェネレーター",
+            desc: "プロフィールが公開されているUIDを入力してください。",
+            placeholder: "原神 UID (例: 618285856)",
+            fetchBtn: "ビルド情報取得 & カード表示",
+            debugTitle: "通信/デバッグ情報",
+            loading: "データ取得中... しばらくお待ちください。",
+            uidInvalid: "⚠️ 有効な9桁のUIDを入力してください。",
+            downloadBtn: "画像としてダウンロード",
+            fetchSuccess: "✅ ビルド情報 {count} 件を取得しました。画像を生成してください。",
+            downloadSuccess: "✅ ダウンロードが完了しました。",
+            downloading: "画像生成中...",
+            errorNetwork: "❌ 通信エラー: サーバーとの接続に失敗しました。",
+            errorApiNoChar: "⚠️ プロフィールが非公開、またはキャラクターが設定されていません。",
+            errorImgGen: (msg) => `❌ 画像生成エラー: ${msg || 'キャプチャに失敗しました。'}`,
+            debugSuccess: "データを正常に受信しました。",
+            debugErrorNet: "JavaScriptのFetch APIが接続を拒否しました (CORSまたはネットワークエラー)。",
+            statMap: {
+                'FIGHT_PROP_HP': 'HP (体力)', 'FIGHT_PROP_ATTACK': '攻撃力',
+                'FIGHT_PROP_DEFENSE': '防御力', 'FIGHT_PROP_CRITICAL': '会心率',
+                'FIGHT_PROP_CRITICAL_HURT': '会心ダメージ',
+                'FIGHT_PROP_CHARGE_EFFICIENCY': '元素チャージ効率',
+                'FIGHT_PROP_ELEMENT_MASTERY': '元素熟知',
+            },
+            apiErrors: {
+                400: "UIDの形式が不正です。", 404: "プレイヤーが存在しません。",
+                424: "ゲームメンテナンス中です。", 429: "レートリミット超過です。",
+                500: "Enka.NetWorkサーバーエラーが発生しました。", 503: "APIサービス一時停止中です。",
+            }
+        },
+        en: {
+            title: "⚔️ Genshin Build Card Generator",
+            desc: "Enter a UID whose profile is public.",
+            placeholder: "Genshin UID (e.g.: 618285856)",
+            fetchBtn: "Fetch Build Data & Show Cards",
+            debugTitle: "Network/Debug Info",
+            loading: "Fetching data... Please wait.",
+            uidInvalid: "⚠️ Please enter a valid 9-digit UID.",
+            downloadBtn: "Download as Image",
+            fetchSuccess: "✅ Successfully fetched {count} builds. Generate images.",
+            downloadSuccess: "✅ Download complete.",
+            downloading: "Generating image...",
+            errorNetwork: "❌ Network Error: Failed to connect to server.",
+            errorApiNoChar: "⚠️ Profile is private, or no characters are set.",
+            errorImgGen: (msg) => `❌ Image Generation Error: ${msg || 'Capture failed.'}`,
+            debugSuccess: "Data received successfully.",
+            debugErrorNet: "JavaScript Fetch API denied connection (CORS or Network Error).",
+            statMap: {
+                'FIGHT_PROP_HP': 'HP (Health)', 'FIGHT_PROP_ATTACK': 'ATK (Attack)',
+                'FIGHT_PROP_DEFENSE': 'DEF (Defense)', 'FIGHT_PROP_CRITICAL': 'CRIT Rate',
+                'FIGHT_PROP_CRITICAL_HURT': 'CRIT DMG',
+                'FIGHT_PROP_CHARGE_EFFICIENCY': 'Energy Recharge',
+                'FIGHT_PROP_ELEMENT_MASTERY': 'Elemental Mastery',
+            },
+            apiErrors: {
+                400: "Invalid UID format.", 404: "Player does not exist.",
+                424: "Game is under maintenance.", 429: "Rate limit exceeded.",
+                500: "Enka.NetWork server error occurred.", 503: "API service is temporarily halted.",
+            }
+        }
+    };
+
+    // キャラクターIDマップ (多言語対応データには含めず、コード内で利用)
     const characterIdMap = {
         10000002: { name: "神里綾華", icon: "Ayaka" },
         10000003: { name: "ジン", icon: "Jean" },
-        10000005: { name: "旅人(風)", icon: "Aether" },
-        10000006: { name: "リサ", icon: "Lisa" },
-        10000007: { name: "ガイア", icon: "Kaeya" },
-        10000014: { name: "バーバラ", icon: "Barbara" },
-        10000020: { name: "ディルック", icon: "Diluc" },
-        10000021: { name: "香菱", icon: "Xiangling" },
-        10000022: { name: "ベネット", icon: "Bennett" },
-        // ... (必要なキャラクターIDをここに追加)
-    };
-    
-    const statMapping = {
-        'FIGHT_PROP_HP': 'HP (体力)', 'FIGHT_PROP_ATTACK': '攻撃力',
-        'FIGHT_PROP_DEFENSE': '防御力', 'FIGHT_PROP_CRITICAL': '会心率',
-        'FIGHT_PROP_CRITICAL_HURT': '会心ダメージ',
-        'FIGHT_PROP_CHARGE_EFFICIENCY': '元素チャージ効率',
-        'FIGHT_PROP_ELEMENT_MASTERY': '元素熟知',
+        // ... (必要なキャラクターIDをここに追加) ...
     };
 
+
+    // --- ユーティリティ: 言語切り替え ---
+    function switchLanguage() {
+        currentLang = document.getElementById('lang-switcher').value;
+        const lang = translations[currentLang];
+        
+        // 静的テキストの更新
+        document.getElementById('app-title').textContent = lang.title;
+        document.getElementById('main-title').textContent = lang.title;
+        document.getElementById('desc-text').textContent = lang.desc;
+        document.getElementById('uid-input').placeholder = lang.placeholder;
+        document.getElementById('fetch-button').textContent = lang.fetchBtn;
+        document.getElementById('debug-title').textContent = lang.debugTitle;
+        
+        // 既存メッセージのリセット
+        MESSAGE_AREA.innerHTML = '';
+        CARD_CONTAINER.innerHTML = '';
+        resetDebugInfo();
+    }
+    
     // --- ユーティリティ: デバッグ情報のリセット ---
     function resetDebugInfo() {
         DEBUG_URL.innerHTML = `URL:`;
@@ -193,21 +267,22 @@
         DEBUG_MESSAGE.innerHTML = `メッセージ:`;
         DEBUG_STATUS.className = '';
     }
-
-    // --- 1. データ取得機能 (修正) ---
+    
+    // --- 1. データ取得機能 (修正済み) ---
     async function fetchBuildData() {
         const uid = document.getElementById('uid-input').value.trim();
         const url = `${BASE_URL}${uid}/`;
+        const lang = translations[currentLang];
         
         resetDebugInfo();
-        MESSAGE_AREA.innerHTML = '<p style="color: #90ee90;">データ取得中... しばらくお待ちください。</p>';
+        MESSAGE_AREA.innerHTML = `<p style="color: #90ee90;">${lang.loading}</p>`;
         CARD_CONTAINER.innerHTML = '';
         
         DEBUG_URL.innerHTML = `URL: <strong>${url}</strong>`;
 
         if (!/^\d{9}$/.test(uid)) {
-            MESSAGE_AREA.innerHTML = '<p class="error">⚠️ 有効な9桁のUIDを入力してください。</p>';
-            DEBUG_MESSAGE.innerHTML = `メッセージ: <strong>UIDの入力形式が不正です。</strong>`;
+            MESSAGE_AREA.innerHTML = `<p class="error">${lang.uidInvalid}</p>`;
+            DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-error">${lang.uidInvalid}</strong>`;
             return;
         }
 
@@ -218,12 +293,7 @@
             DEBUG_STATUS.innerHTML = `HTTPステータス: <strong>${status}</strong>`;
 
             if (!response.ok) {
-                const errorMessages = {
-                    400: "UIDの形式が不正です。", 404: "プレイヤーが存在しません。",
-                    424: "ゲームメンテナンス中です。", 429: "レートリミット超過です。",
-                    500: "Enka.NetWorkサーバーエラーが発生しました。", 503: "APIサービス一時停止中です。",
-                };
-                const apiMessage = errorMessages[status] || `不明なエラーが発生しました。`;
+                const apiMessage = lang.apiErrors[status] || `Unknown error occurred (Code: ${status})`;
                 
                 MESSAGE_AREA.innerHTML = `<p class="error">❌ ${apiMessage}</p>`;
                 DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-error">${apiMessage}</strong>`;
@@ -234,29 +304,31 @@
             const data = await response.json();
             
             DEBUG_STATUS.className = 'status-success';
-            DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-success">データを正常に受信しました。</strong>`;
+            DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-success">${lang.debugSuccess}</strong>`;
 
             renderCards(data);
 
         } catch (error) {
-            // サーバーとの接続自体に失敗した場合 (通信エラー、CORSなど)
-            MESSAGE_AREA.innerHTML = '<p class="error">❌ 通信エラー: サーバーとの接続に失敗しました。</p>';
-            DEBUG_STATUS.innerHTML = `HTTPステータス: <strong>接続不可</strong>`;
-            DEBUG_MESSAGE.innerHTML = `<strong class="status-error">JavaScriptのFetch APIが接続を拒否しました (CORSまたはネットワークエラー)。</strong>`;
+            // サーバーとの接続自体に失敗した場合 (通信エラー)
+            MESSAGE_AREA.innerHTML = `<p class="error">${lang.errorNetwork}</p>`;
+            DEBUG_STATUS.innerHTML = `HTTPステータス: <strong>N/A</strong>`;
+            DEBUG_MESSAGE.innerHTML = `<strong class="status-error">${lang.debugErrorNet}</strong>`;
             DEBUG_STATUS.className = 'status-error';
             console.error('Fetch Error:', error);
         }
     }
 
-    // --- 2. カード表示機能 (変更なし、以前の関数を保持) ---
+    // --- 2. カード表示機能 (修正) ---
     function renderCards(data) {
+        const lang = translations[currentLang];
+        
         if (!data.avatarInfoList || data.avatarInfoList.length === 0) {
-            MESSAGE_AREA.innerHTML = '<p class="error">⚠️ プロフィールが非公開、またはキャラクターが設定されていません。</p>';
-            DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-error">APIからキャラクター情報が返されませんでした。</strong>`;
+            MESSAGE_AREA.innerHTML = `<p class="error">${lang.errorApiNoChar}</p>`;
+            DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-error">${lang.errorApiNoChar}</strong>`;
             return;
         }
         
-        MESSAGE_AREA.innerHTML = `<p style="color: #90ee90;">✅ ビルド情報 ${data.avatarInfoList.length} 件を取得しました。画像を生成してください。</p>`;
+        MESSAGE_AREA.innerHTML = `<p style="color: #90ee90;">${lang.fetchSuccess.replace('{count}', data.avatarInfoList.length)}</p>`;
         
         data.avatarInfoList.forEach(avatar => {
             const charData = characterIdMap[avatar.avatarId] || { name: `ID:${avatar.avatarId}`, icon: 'Unknown' };
@@ -269,29 +341,32 @@
                 const totalHp = Math.round(stats['FIGHT_PROP_HP'] + stats['FIGHT_PROP_BASE_HP']);
                 const totalAtk = Math.round(stats['FIGHT_PROP_ATTACK'] + stats['FIGHT_PROP_BASE_ATTACK']);
                 const totalDef = Math.round(stats['FIGHT_PROP_DEFENSE'] + stats['FIGHT_PROP_BASE_DEFENSE']);
+                
+                // 言語設定に合わせてステータス名を取得
+                const statMap = lang.statMap;
 
-                statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_HP']}:</span> <span class="stat-value">${totalHp}</span></div>`;
-                statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_ATTACK']}:</span> <span class="stat-value">${totalAtk}</span></div>`;
-                statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_DEFENSE']}:</span> <span class="stat-value">${totalDef}</span></div>`;
-                statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_CRITICAL']}:</span> <span class="stat-value">${(stats['FIGHT_PROP_CRITICAL'] * 100).toFixed(1)}%</span></div>`;
-                statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_CRITICAL_HURT']}:</span> <span class="stat-value">${(stats['FIGHT_PROP_CRITICAL_HURT'] * 100).toFixed(1)}%</span></div>`;
-                statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_CHARGE_EFFICIENCY']}:</span> <span class="stat-value">${(stats['FIGHT_PROP_CHARGE_EFFICIENCY'] * 100).toFixed(1)}%</span></div>`;
-                statHtml += `<div class="stat-line"><span>${statMapping['FIGHT_PROP_ELEMENT_MASTERY']}:</span> <span class="stat-value">${Math.round(stats['FIGHT_PROP_ELEMENT_MASTERY'])}</span></div>`;
+                statHtml += `<div class="stat-line"><span>${statMap['FIGHT_PROP_HP']}:</span> <span class="stat-value">${totalHp}</span></div>`;
+                statHtml += `<div class="stat-line"><span>${statMap['FIGHT_PROP_ATTACK']}:</span> <span class="stat-value">${totalAtk}</span></div>`;
+                statHtml += `<div class="stat-line"><span>${statMap['FIGHT_PROP_DEFENSE']}:</span> <span class="stat-value">${totalDef}</span></div>`;
+                statHtml += `<div class="stat-line"><span>${statMap['FIGHT_PROP_CRITICAL']}:</span> <span class="stat-value">${(stats['FIGHT_PROP_CRITICAL'] * 100).toFixed(1)}%</span></div>`;
+                statHtml += `<div class="stat-line"><span>${statMap['FIGHT_PROP_CRITICAL_HURT']}:</span> <span class="stat-value">${(stats['FIGHT_PROP_CRITICAL_HURT'] * 100).toFixed(1)}%</span></div>`;
+                statHtml += `<div class="stat-line"><span>${statMap['FIGHT_PROP_CHARGE_EFFICIENCY']}:</span> <span class="stat-value">${(stats['FIGHT_PROP_CHARGE_EFFICIENCY'] * 100).toFixed(1)}%</span></div>`;
+                statHtml += `<div class="stat-line"><span>${statMap['FIGHT_PROP_ELEMENT_MASTERY']}:</span> <span class="stat-value">${Math.round(stats['FIGHT_PROP_ELEMENT_MASTERY'])}</span></div>`;
             } else {
-                statHtml = '<p>詳細ステータス情報なし</p>';
+                statHtml = `<p>No detailed stats available</p>`; // エラーメッセージの多言語対応は簡略化
             }
 
             const cardHtml = `
                 <div class="build-card" id="${cardId}">
                     <div class="card-header">
-                        <img src="${iconUrl}" alt="${charData.name}アイコン" onerror="this.onerror=null;this.src='https://enka.network/ui/UI_AvatarIcon_None.png';">
+                        <img src="${iconUrl}" alt="${charData.name}アイコン" crossorigin="anonymous" onerror="this.onerror=null;this.src='https://enka.network/ui/UI_AvatarIcon_None.png';">
                         <div class="char-name">${charData.name}</div>
                     </div>
-                    <p style="font-size: 0.9em; color: #b48ead;">Lv: ${avatar.propMap[4001].val} | プレイヤー: ${data.playerInfo.nickname}</p>
+                    <p style="font-size: 0.9em; color: #b48ead;">Lv: ${avatar.propMap[4001].val} | Player: ${data.playerInfo.nickname}</p>
                     ${statHtml}
                 </div>
                 <div class="download-actions">
-                    <button class="download-btn" onclick="generateAndDownloadCard('${cardId}', '${charData.name}')">画像としてダウンロード</button>
+                    <button class="download-btn" onclick="generateAndDownloadCard('${cardId}', '${charData.name}')">${lang.downloadBtn}</button>
                 </div>
             `;
             
@@ -301,35 +376,42 @@
         });
     }
 
-    // --- 3. 画像生成＆ダウンロード機能 (変更なし) ---
+    // --- 3. 画像生成＆ダウンロード機能 (修正) ---
     function generateAndDownloadCard(cardElementId, charName) {
         const cardElement = document.getElementById(cardElementId);
         const actions = cardElement.nextElementSibling;
+        const lang = translations[currentLang];
+        
         actions.style.display = 'none';
 
-        MESSAGE_AREA.innerHTML = '<p style="color: #90ee90;">画像生成中...</p>';
+        MESSAGE_AREA.innerHTML = `<p style="color: #90ee90;">${lang.downloading}</p>`;
 
+        // 【重要修正点】：画像要素に crossorigin="anonymous" を追加し、CORSエラー対策を強化
         html2canvas(cardElement, {
             scale: 2, 
             useCORS: true, 
-            allowTaint: true
         }).then(canvas => {
             const link = document.createElement('a');
-            link.download = `${charName}_ビルドカード_${new Date().toLocaleDateString()}.png`;
+            link.download = `${charName}_BuildCard_${new Date().toLocaleDateString()}.png`;
             link.href = canvas.toDataURL('image/png');
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
-            MESSAGE_AREA.innerHTML = '<p style="color: #90ee90;">✅ ダウンロードが完了しました。</p>';
+            MESSAGE_AREA.innerHTML = `<p style="color: #90ee90;">${lang.downloadSuccess}</p>`;
             actions.style.display = 'block';
 
         }).catch(err => {
-            MESSAGE_AREA.innerHTML = `<p class="error">❌ 画像生成エラー: ${err.message || 'キャプチャに失敗しました。'}</p>`;
+            MESSAGE_AREA.innerHTML = `<p class="error">${lang.errorImgGen(err.message)}</p>`;
             console.error('html2canvas error:', err);
             actions.style.display = 'block';
         });
     }
+
+    // ページロード時の初期設定
+    window.onload = function() {
+        switchLanguage();
+    };
 </script>
 
 </body>
