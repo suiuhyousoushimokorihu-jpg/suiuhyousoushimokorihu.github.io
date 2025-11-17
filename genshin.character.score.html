@@ -3,189 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>原神 ビルドカードジェネレーター</title>
+    <title>原神 ビルド情報ビューア (Enka.Network)</title>
     <style>
-        /* 基本的なスタイリング */
+        /* シンプルなスタイリング */
         body {
             font-family: Arial, sans-serif;
-            background-color: #333;
-            color: #fff;
+            background-color: #2e3440; /* Nordテーマのダークカラー */
+            color: #d8dee9;
             padding: 20px;
             text-align: center;
         }
         .container {
-            max-width: 600px;
+            max-width: 900px;
             margin: 0 auto;
-            background-color: #444;
+            background-color: #3b4252;
             padding: 30px;
             border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
         }
-        label, select, input, button {
-            display: block;
-            width: 100%;
-            margin-bottom: 15px;
+        h1 {
+            color: #88c0d0;
+            margin-bottom: 20px;
+        }
+        input[type="text"], button {
             padding: 10px;
-            box-sizing: border-box;
             border-radius: 5px;
             border: none;
+            margin: 5px;
+            font-size: 1em;
         }
-        input[type="text"], select {
-            background-color: #555;
-            color: #fff;
+        input[type="text"] {
+            width: 60%;
+            background-color: #4c566a;
+            color: #eceff4;
         }
         button {
-            background-color: #4CAF50; /* 緑色のボタン */
-            color: white;
+            background-color: #a3be8c; /* 緑系のボタン */
+            color: #2e3440;
             cursor: pointer;
-            font-size: 1.1em;
-            transition: background-color 0.3s;
+            transition: background-color 0.2s;
         }
         button:hover {
-            background-color: #45a049;
+            background-color: #b4c798;
         }
         #result-area {
             margin-top: 30px;
-            border: 1px solid #666;
-            padding: 15px;
-            background-color: #222;
-            border-radius: 5px;
             text-align: left;
         }
-        #result-area img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 5px;
-            margin-top: 15px;
-            display: block;
+        .error {
+            color: #bf616a; /* 赤系のエラー色 */
+            font-weight: bold;
         }
-        #char-list-select {
-            display: none; /* キャラクター選択を最初は非表示 */
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .character-card {
+            background-color: #4c566a;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .char-name {
+            color: #ebcb8b; /* 黄色系の強調色 */
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #5e81ac;
+            padding-bottom: 5px;
+        }
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>原神 ビルドカードジェネレーター</h1>
-    <p>UIDとキャラクター名を入力し、スコアタイプを選択してビルドカードを生成します。</p>
+    <h1>⚔️ 原神 ビルド情報ビューア</h1>
+    <p>プロフィールが公開されているUIDを入力してください。</p>
 
-    <label for="uid-input">原神 UID (半角数字):</label>
-    <input type="text" id="uid-input" placeholder="例: 800000000">
-    
-    <button onclick="getCharacterList()">1. キャラクターリストを取得</button>
-    
-    <div id="char-list-select">
-        <label for="chara-select">キャラクター名を選択:</label>
-        <select id="chara-select"></select>
-    </div>
-    
-    <label for="score-select">スコアタイプを選択:</label>
-    <select id="score-select">
-        <option value="ATTACK">攻撃力 (ATTACK)</option>
-        <option value="HP">体力 (HP)</option>
-        <option value="CHARGE">元素チャージ (CHARGE)</option>
-        <option value="ELEMENT">元素熟知 (ELEMENT)</option>
-        <option value="DEFENCE">防御力 (DEFENCE)</option>
-    </select>
-    
-    <button onclick="generateBuildCard()">2. ビルドカードを生成</button>
+    <input type="text" id="uid-input" placeholder="原神 UID (例: 618285856)">
+    <button onclick="fetchBuildData()">ビルド情報を取得</button>
 
     <div id="result-area">
-        <h2>結果:</h2>
-        <div id="output"></div>
-    </div>
+        </div>
 </div>
 
 <script>
-    // --- API エンドポイント ---
-    const BASE_URL = "https://genshin-image-gen-api.krnk.org/api/";
+    const BASE_URL = "https://enka.network/api/uid/";
 
-    // --- 1. キャラクターリスト取得機能 ---
-    async function getCharacterList() {
+    // 取得したキャラクターIDをキャラクター名に変換するための辞書
+    // 実際のアプリケーションでは、より包括的な辞書が必要です。
+    const characterIdMap = {
+        10000002: "神里綾華",
+        10000003: "ジン",
+        10000005: "旅人(風)",
+        10000006: "リサ",
+        10000007: "ガイア",
+        10000014: "バーバラ",
+        10000020: "ディルック",
+        10000021: "香菱",
+        10000022: "ベネット",
+        // ... (さらに多くのキャラクターIDを追加)
+    };
+    
+    // スコアタイプと日本語名をマッピング (ビルドカード生成APIのスコアとは異なりますが、参考として)
+    const statMapping = {
+        'FIGHT_PROP_ATTACK': '攻撃力',
+        'FIGHT_PROP_HP': 'HP',
+        'FIGHT_PROP_DEFENSE': '防御力',
+        'FIGHT_PROP_CRITICAL': '会心率',
+        'FIGHT_PROP_CRITICAL_HURT': '会心ダメージ',
+        'FIGHT_PROP_CHARGE_EFFICIENCY': '元素チャージ効率',
+        'FIGHT_PROP_ELEMENT_MASTERY': '元素熟知',
+        // ... (必要なステータスを追加)
+    };
+
+
+    async function fetchBuildData() {
         const uid = document.getElementById('uid-input').value.trim();
-        const output = document.getElementById('output');
-        const charaSelect = document.getElementById('chara-select');
-        const charListSelectDiv = document.getElementById('char-list-select');
+        const resultArea = document.getElementById('result-area');
+        resultArea.innerHTML = '<h2>取得中...</h2>';
         
-        if (!/^\d+$/.test(uid)) {
-            output.innerHTML = "<p style='color: yellow;'>⚠️ 有効なUIDを入力してください。</p>";
+        if (!/^\d{9}$/.test(uid)) {
+            resultArea.innerHTML = '<h2 class="error">⚠️ 有効な9桁のUIDを入力してください。</h2>';
             return;
         }
 
-        output.innerHTML = "<p>キャラクターリストを取得中...</p>";
-        charaSelect.innerHTML = ""; // 選択肢をリセット
-
         try {
-            const url = `${BASE_URL}genshindata/?uid=${uid}`;
+            const url = `${BASE_URL}${uid}/`;
             const response = await fetch(url);
             
+            // HTTPステータスコードによるエラー処理
             if (!response.ok) {
-                // APIからのエラーレスポンスを処理
-                const errorData = await response.json();
-                output.innerHTML = `<p style='color: red;'>❌ エラー: ${errorData.detail || 'キャラクターデータの取得に失敗しました。'}</p>`;
-                charListSelectDiv.style.display = 'none';
+                const errorMessages = {
+                    400: "UIDの形式が不正です。",
+                    404: "そのUIDのプレイヤーは存在しません。",
+                    424: "ゲームメンテナンスまたはAPIシステム変更中です。",
+                    429: "レートリミット超過です。時間をおいてお試しください。",
+                    500: "Enka.NetWorkサーバーエラーが発生しました。",
+                    503: "Enka.NetWorkサーバーが一時停止中です。",
+                };
+                const status = response.status;
+                const errorMessage = errorMessages[status] || `不明なエラーが発生しました (コード: ${status})`;
+                resultArea.innerHTML = `<h2 class="error">❌ ${errorMessage}</h2>`;
                 return;
             }
 
             const data = await response.json();
-            const characters = data.characters;
             
-            if (characters && characters.length > 0) {
-                characters.forEach(char => {
-                    const option = document.createElement('option');
-                    option.value = char.name; // 日本語名
-                    option.textContent = char.name;
-                    charaSelect.appendChild(option);
-                });
-                
-                output.innerHTML = "<p style='color: lightgreen;'>✅ キャラクターリストを取得しました。ドロップダウンから選択してください。</p>";
-                charListSelectDiv.style.display = 'block'; // 選択肢を表示
-            } else {
-                output.innerHTML = "<p style='color: yellow;'>⚠️ このUIDに関連付けられたキャラクターが見つかりませんでした。</p>";
-                charListSelectDiv.style.display = 'none';
-            }
+            // データ取得成功後の処理
+            renderData(data, resultArea);
 
         } catch (error) {
-            output.innerHTML = `<p style='color: red;'>❌ 通信エラー: サーバーとの接続に失敗しました。</p>`;
-            console.error(error);
+            resultArea.innerHTML = '<h2 class="error">❌ 通信エラー: サーバーとの接続に失敗しました。</h2>';
+            console.error('Fetch Error:', error);
         }
     }
 
-
-    // --- 2. ビルドカード生成機能 ---
-    async function generateBuildCard() {
-        const uid = document.getElementById('uid-input').value.trim();
-        const charaName = document.getElementById('chara-select').value;
-        const scoreType = document.getElementById('score-select').value;
-        const output = document.getElementById('output');
-        
-        if (!uid || !charaName) {
-            output.innerHTML = "<p style='color: yellow;'>⚠️ UIDの入力と、キャラクターの選択を完了してください。</p>";
+    function renderData(data, resultArea) {
+        if (!data.avatarInfoList || data.avatarInfoList.length === 0) {
+            resultArea.innerHTML = '<h2>⚠️ プロフィールが非公開、またはキャラクターが設定されていません。</h2>';
             return;
         }
+
+        let htmlContent = `<h2>👤 プレイヤー情報</h2>`;
+        htmlContent += `<p><strong>ニックネーム:</strong> ${data.playerInfo.nickname || 'N/A'}</p>`;
+        htmlContent += `<p><strong>冒険ランク:</strong> ${data.playerInfo.level || 'N/A'}</p>`;
+        htmlContent += `<p><strong>世界ランク:</strong> ${data.playerInfo.worldLevel || 'N/A'}</p>`;
         
-        output.innerHTML = "<p>ビルドカード画像を生成中... しばらくお待ちください。</p>";
+        htmlContent += `<h2>✨ キャラクタービルド (${data.avatarInfoList.length}体)</h2>`;
+        htmlContent += `<div class="character-grid">`;
 
-        try {
-            // APIのURLを構築
-            // スコアタイプ: ATTACK, HP, CHARGE, ELEMENT, DEFENCE のいずれか
-            const url = `${BASE_URL}generation/?uid=${uid}&scoretype=${scoreType}&charaName=${charaName}`;
-
-            // <img>タグの src として直接APIを呼び出す（APIが画像を返すため）
-            const imageUrl = url;
+        data.avatarInfoList.forEach(avatar => {
+            // キャラクターIDから名前を取得
+            const charName = characterIdMap[avatar.avatarId] || `キャラID: ${avatar.avatarId}`;
             
-            output.innerHTML = `
-                <p style='color: lightgreen;'>✅ 生成完了しました。</p>
-                <a href="${imageUrl}" target="_blank">画像を別タブで開く (フルサイズ)</a>
-                <img src="${imageUrl}" alt="${charaName} ビルドカード">
+            // 主要なステータスを取得（全てのステータスがAPIに含まれるわけではありません）
+            const stats = avatar.fightProp;
+
+            // キャラクターカードHTMLを生成
+            htmlContent += `
+                <div class="character-card">
+                    <div class="char-name">${charName}</div>
+                    
+                    ${stats ? `
+                        <div class="stat-line"><span>${statMapping['FIGHT_PROP_HP']}:</span> <span>${Math.round(stats['FIGHT_PROP_HP'] + stats['FIGHT_PROP_BASE_HP'])}</span></div>
+                        <div class="stat-line"><span>${statMapping['FIGHT_PROP_ATTACK']}:</span> <span>${Math.round(stats['FIGHT_PROP_ATTACK'] + stats['FIGHT_PROP_BASE_ATTACK'])}</span></div>
+                        <div class="stat-line"><span>${statMapping['FIGHT_PROP_DEFENSE']}:</span> <span>${Math.round(stats['FIGHT_PROP_DEFENSE'] + stats['FIGHT_PROP_BASE_DEFENSE'])}</span></div>
+                        <div class="stat-line"><span>${statMapping['FIGHT_PROP_CRITICAL']}:</span> <span>${(stats['FIGHT_PROP_CRITICAL'] * 100).toFixed(1)}%</span></div>
+                        <div class="stat-line"><span>${statMapping['FIGHT_PROP_CRITICAL_HURT']}:</span> <span>${(stats['FIGHT_PROP_CRITICAL_HURT'] * 100).toFixed(1)}%</span></div>
+                        <div class="stat-line"><span>${statMapping['FIGHT_PROP_CHARGE_EFFICIENCY']}:</span> <span>${(stats['FIGHT_PROP_CHARGE_EFFICIENCY'] * 100).toFixed(1)}%</span></div>
+                        <div class="stat-line"><span>${statMapping['FIGHT_PROP_ELEMENT_MASTERY']}:</span> <span>${Math.round(stats['FIGHT_PROP_ELEMENT_MASTERY'])}</span></div>
+                    ` : '<p>ステータス情報なし</p>'}
+                    
+                    <p style="margin-top: 10px; font-size: 0.8em; color: #8fbcbb;">レベル: ${avatar.propMap[4001].val}</p>
+                </div>
             `;
+        });
 
-        } catch (error) {
-            output.innerHTML = `<p style='color: red;'>❌ 通信エラー: 画像の生成に失敗しました。</p>`;
-            console.error(error);
-        }
+        htmlContent += `</div>`;
+        resultArea.innerHTML = htmlContent;
     }
-
 </script>
 
 </body>
