@@ -72,6 +72,7 @@
             <div id="yesterday_stats" class="tab-content" style="display: none;">
                 <h2 id="yesterday-title">昨日の獲得統計</h2>
                 <div id="yesterday_stats-content"></div>
+                <p id="last-update-time" style="text-align: right; font-size: 0.8em; color: #777;"></p>
             </div>
         </div>
     </div>
@@ -83,30 +84,22 @@
         let currentRankingData = []; 
         let currentLogsData = [];
         
-        // 日付が変わったかをチェックするために現在の日付を保持する変数
         let currentDay = ''; 
+        const AUTO_UPDATE_INTERVAL_MS = 180000; 
 
-        // 🔽 修正された getYesterdayDateString 関数 🔽
         function getYesterdayDateString() {
             const today = new Date();
             const yesterday = new Date(today);
             
-            // 確実に1日戻す
             yesterday.setDate(today.getDate() - 1); 
             
-            // 日本時間 (JST) で YYYY-MM-DD 形式にフォーマットする
-            // timeZone: 'Asia/Tokyo' を明示することで、ブラウザのタイムゾーン設定に依存せずJSTで計算させる
             const options = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Tokyo' };
             
-            // toLocaleDateString の出力例: '2025/11/17' (ja-JPロケールを使用)
             const formattedDate = yesterday.toLocaleDateString('ja-JP', options);
             
-            // '2025/11/17' を '2025-11-17' に変換して返す
             return formattedDate.replace(/\//g, '-'); 
         }
-        // 🔼 修正された getYesterdayDateString 関数 🔼
-
-
+        
         async function loadData() {
             const guildId = document.getElementById('guildIdInput').value.trim();
             if (!guildId) {
@@ -125,6 +118,14 @@
             renderRankingTable(currentRankingData, 'total_points', 'desc');
             renderDailyLogsTable(currentLogsData, 'log_date', 'desc');
             renderYesterdayStatsTable(currentLogsData); 
+            
+            const now = new Date();
+            const timeOptions = { 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', 
+                hour12: false, timeZone: 'Asia/Tokyo' 
+            };
+            const formattedTime = now.toLocaleTimeString('ja-JP', timeOptions);
+            document.getElementById('last-update-time').textContent = `最終データ更新: ${formattedTime} (JST)`;
         }
 
         async function fetchRanking() { 
@@ -364,11 +365,10 @@
             activeTab = targetId;
         }
         
-        // --- 🔽 追加機能: 時刻更新と日またぎチェック 🔽 ---
         
         /**
-         * 現在時刻を更新し、日が変わった場合はページをリロードする
-         */
+        * 現在時刻を更新し、日が変わった場合はページをリロードする
+        */
         function updateTimeAndCheckDayChange() {
             const now = new Date();
             
@@ -399,8 +399,6 @@
             }
         }
 
-        // --- 🔼 追加機能: 時刻更新と日またぎチェック 🔼 ---
-
 
         document.addEventListener('DOMContentLoaded', () => {
             const tabs = document.getElementById('tabs');
@@ -417,8 +415,11 @@
             updateTimeAndCheckDayChange(); 
             loadData();
 
-            // 60秒（60000ミリ秒）ごとに時刻チェックを繰り返す
-            setInterval(updateTimeAndCheckDayChange, 60000); 
+            // 3分（180000ミリ秒）ごとに時刻チェックと日またぎチェックを繰り返す
+            setInterval(updateTimeAndCheckDayChange, AUTO_UPDATE_INTERVAL_MS); 
+            
+            // 3分ごとにデータを自動取得・再描画する設定
+            setInterval(loadData, AUTO_UPDATE_INTERVAL_MS);
         });
     </script>
 </body>
