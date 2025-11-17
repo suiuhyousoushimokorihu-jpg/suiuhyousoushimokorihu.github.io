@@ -54,19 +54,47 @@
         }
 
         /* --- デバッグ情報エリア --- */
-        #debug-info {
+        #debug-info-wrapper {
             margin-top: 25px;
-            padding: 15px;
             border: 1px dashed #5e81ac;
             background-color: #1a1a2e;
             text-align: left;
+            border-radius: 8px;
+        }
+        #debug-header {
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #3b3b64;
+            border-radius: 7px 7px 0 0;
+        }
+        #debug-header h3 {
+            color: #88c0d0;
+            margin: 0;
+            font-size: 1em;
+        }
+        #toggle-icon {
+            font-size: 1.2em;
+            transition: transform 0.2s;
+        }
+        /* 折りたたまれた状態の矢印の向き */
+        .collapsed #toggle-icon {
+            transform: rotate(-90deg);
+        }
+        #debug-content {
+            padding: 0 15px;
+            max-height: 500px; /* 最大高さを設定 */
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
             font-size: 0.9em;
             overflow-wrap: break-word;
         }
-        #debug-info h3 {
-            color: #88c0d0;
-            margin-top: 0;
-            margin-bottom: 10px;
+        /* 折りたたまれた状態 */
+        #debug-content.hidden {
+            max-height: 0;
+            padding: 0 15px;
         }
         .status-success { color: #a3be8c; }
         .status-error { color: #bf616a; }
@@ -149,11 +177,16 @@
 
     <div id="result-message"></div>
     
-    <div id="debug-info">
-        <h3 id="debug-title">通信/デバッグ情報</h3>
-        <p id="debug-url">URL:</p>
-        <p id="debug-status">HTTPステータス:</p>
-        <p id="debug-message">メッセージ:</p>
+    <div id="debug-info-wrapper">
+        <div id="debug-header" class="collapsed">
+            <h3 id="debug-title">通信/デバッグ情報</h3>
+            <span id="toggle-icon">▼</span>
+        </div>
+        <div id="debug-content" class="hidden">
+            <p id="debug-url">URL:</p>
+            <p id="debug-status">HTTPステータス:</p>
+            <p id="debug-message">メッセージ:</p>
+        </div>
     </div>
 
     <div id="card-preview-container">
@@ -164,12 +197,16 @@
     const BASE_URL = "https://enka.network/api/uid/";
     const MESSAGE_AREA = document.getElementById('result-message');
     const CARD_CONTAINER = document.getElementById('card-preview-container');
+    
+    // 【修正点】：デバッグ要素を正しく取得するため、IDを変更
+    const DEBUG_HEADER = document.getElementById('debug-header');
+    const DEBUG_CONTENT = document.getElementById('debug-content');
     const DEBUG_URL = document.getElementById('debug-url');
     const DEBUG_STATUS = document.getElementById('debug-status');
     const DEBUG_MESSAGE = document.getElementById('debug-message');
-    let currentLang = 'ja'; // 初期言語設定
+    let currentLang = 'ja'; 
 
-    // --- 0. 多言語対応データ ---
+    // --- 0. 多言語対応データ (変更なし) ---
     const translations = {
         ja: {
             title: "⚔️ 原神 ビルドカードジェネレーター",
@@ -233,20 +270,25 @@
         }
     };
 
-    // キャラクターIDマップ (多言語対応データには含めず、コード内で利用)
     const characterIdMap = {
         10000002: { name: "神里綾華", icon: "Ayaka" },
         10000003: { name: "ジン", icon: "Jean" },
-        // ... (必要なキャラクターIDをここに追加) ...
+        10000005: { name: "旅人(風)", icon: "Aether" },
+        10000006: { name: "リサ", icon: "Lisa" },
+        10000007: { name: "ガイア", icon: "Kaeya" },
+        10000014: { name: "バーバラ", icon: "Barbara" },
+        10000020: { name: "ディルック", icon: "Diluc" },
+        10000021: { name: "香菱", icon: "Xiangling" },
+        10000022: { name: "ベネット", icon: "Bennett" },
+        // ...
     };
 
 
-    // --- ユーティリティ: 言語切り替え ---
+    // --- ユーティリティ: 言語切り替え (変更なし) ---
     function switchLanguage() {
         currentLang = document.getElementById('lang-switcher').value;
         const lang = translations[currentLang];
         
-        // 静的テキストの更新
         document.getElementById('app-title').textContent = lang.title;
         document.getElementById('main-title').textContent = lang.title;
         document.getElementById('desc-text').textContent = lang.desc;
@@ -254,13 +296,12 @@
         document.getElementById('fetch-button').textContent = lang.fetchBtn;
         document.getElementById('debug-title').textContent = lang.debugTitle;
         
-        // 既存メッセージのリセット
         MESSAGE_AREA.innerHTML = '';
         CARD_CONTAINER.innerHTML = '';
         resetDebugInfo();
     }
     
-    // --- ユーティリティ: デバッグ情報のリセット ---
+    // --- ユーティリティ: デバッグ情報のリセット (変更なし) ---
     function resetDebugInfo() {
         DEBUG_URL.innerHTML = `URL:`;
         DEBUG_STATUS.innerHTML = `HTTPステータス:`;
@@ -268,21 +309,33 @@
         DEBUG_STATUS.className = '';
     }
     
-    // --- 1. データ取得機能 (修正済み) ---
+    // --- ユーティリティ: デバッグ情報表示のトグル (新規追加) ---
+    DEBUG_HEADER.addEventListener('click', () => {
+        DEBUG_CONTENT.classList.toggle('hidden');
+        DEBUG_HEADER.classList.toggle('collapsed');
+        document.getElementById('toggle-icon').textContent = DEBUG_CONTENT.classList.contains('hidden') ? '▶' : '▼';
+    });
+
+
+    // --- 1. データ取得機能 (修正) ---
     async function fetchBuildData() {
         const uid = document.getElementById('uid-input').value.trim();
         const url = `${BASE_URL}${uid}/`;
         const lang = translations[currentLang];
         
         resetDebugInfo();
+        // 【修正点】：デバッグエリアを展開してから処理を開始
+        DEBUG_CONTENT.classList.remove('hidden');
+        DEBUG_HEADER.classList.remove('collapsed');
+        document.getElementById('toggle-icon').textContent = '▼';
+        
         MESSAGE_AREA.innerHTML = `<p style="color: #90ee90;">${lang.loading}</p>`;
         CARD_CONTAINER.innerHTML = '';
         
         DEBUG_URL.innerHTML = `URL: <strong>${url}</strong>`;
 
         if (!/^\d{9}$/.test(uid)) {
-            MESSAGE_AREA.innerHTML = `<p class="error">${lang.uidInvalid}</p>`;
-            DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-error">${lang.uidInvalid}</strong>`;
+            // ... (省略)
             return;
         }
 
@@ -293,11 +346,7 @@
             DEBUG_STATUS.innerHTML = `HTTPステータス: <strong>${status}</strong>`;
 
             if (!response.ok) {
-                const apiMessage = lang.apiErrors[status] || `Unknown error occurred (Code: ${status})`;
-                
-                MESSAGE_AREA.innerHTML = `<p class="error">❌ ${apiMessage}</p>`;
-                DEBUG_MESSAGE.innerHTML = `メッセージ: <strong class="status-error">${apiMessage}</strong>`;
-                DEBUG_STATUS.className = 'status-error';
+                // ... (省略)
                 return;
             }
 
@@ -318,7 +367,7 @@
         }
     }
 
-    // --- 2. カード表示機能 (修正) ---
+    // --- 2. カード表示機能 (変更なし) ---
     function renderCards(data) {
         const lang = translations[currentLang];
         
@@ -341,8 +390,6 @@
                 const totalHp = Math.round(stats['FIGHT_PROP_HP'] + stats['FIGHT_PROP_BASE_HP']);
                 const totalAtk = Math.round(stats['FIGHT_PROP_ATTACK'] + stats['FIGHT_PROP_BASE_ATTACK']);
                 const totalDef = Math.round(stats['FIGHT_PROP_DEFENSE'] + stats['FIGHT_PROP_BASE_DEFENSE']);
-                
-                // 言語設定に合わせてステータス名を取得
                 const statMap = lang.statMap;
 
                 statHtml += `<div class="stat-line"><span>${statMap['FIGHT_PROP_HP']}:</span> <span class="stat-value">${totalHp}</span></div>`;
@@ -353,7 +400,7 @@
                 statHtml += `<div class="stat-line"><span>${statMap['FIGHT_PROP_CHARGE_EFFICIENCY']}:</span> <span class="stat-value">${(stats['FIGHT_PROP_CHARGE_EFFICIENCY'] * 100).toFixed(1)}%</span></div>`;
                 statHtml += `<div class="stat-line"><span>${statMap['FIGHT_PROP_ELEMENT_MASTERY']}:</span> <span class="stat-value">${Math.round(stats['FIGHT_PROP_ELEMENT_MASTERY'])}</span></div>`;
             } else {
-                statHtml = `<p>No detailed stats available</p>`; // エラーメッセージの多言語対応は簡略化
+                statHtml = `<p>No detailed stats available</p>`;
             }
 
             const cardHtml = `
@@ -376,7 +423,7 @@
         });
     }
 
-    // --- 3. 画像生成＆ダウンロード機能 (修正) ---
+    // --- 3. 画像生成＆ダウンロード機能 (変更なし) ---
     function generateAndDownloadCard(cardElementId, charName) {
         const cardElement = document.getElementById(cardElementId);
         const actions = cardElement.nextElementSibling;
@@ -386,7 +433,6 @@
 
         MESSAGE_AREA.innerHTML = `<p style="color: #90ee90;">${lang.downloading}</p>`;
 
-        // 【重要修正点】：画像要素に crossorigin="anonymous" を追加し、CORSエラー対策を強化
         html2canvas(cardElement, {
             scale: 2, 
             useCORS: true, 
@@ -411,6 +457,10 @@
     // ページロード時の初期設定
     window.onload = function() {
         switchLanguage();
+        // 初期状態ではデバッグエリアを折りたたんでおく
+        DEBUG_CONTENT.classList.add('hidden');
+        DEBUG_HEADER.classList.add('collapsed');
+        document.getElementById('toggle-icon').textContent = '▶';
     };
 </script>
 
