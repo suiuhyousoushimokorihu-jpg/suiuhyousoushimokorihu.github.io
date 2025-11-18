@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>原神ガチャシミュレーター</title>
+<style>
+body { font-family: sans-serif; padding: 20px; background:#f0f0f5; }
+button { margin: 5px; padding: 10px 20px; }
+table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
+th { background: #eee; }
+</style>
+</head>
+<body>
+
+<h1>原神ガチャシミュレーター</h1>
+<div>
+<button onclick="multiPull(1)">1連</button>
+<button onclick="multiPull(10)">10連</button>
+<button onclick="multiPull(90)">90連</button>
+<button onclick="multiPull(180)">180連</button>
+</div>
+
+<h2>履歴</h2>
+<label>フィルター: 
+<select id="filter" onchange="renderHistory()">
+<option value="all">すべて</option>
+<option value="5">★5</option>
+<option value="4">★4</option>
+<option value="3">★3</option>
+</select>
+</label>
+<table id="historyTable">
+<tr><th>連数</th><th>アイテム名</th><th>レアリティ</th><th>タイプ</th><th>ピックアップ</th></tr>
+</table>
+
+<script>
+// データ（例）
+const characters = [
+  {name:"アヤカ", rarity:5, banner:"pickup"},
+  {name:"リサ", rarity:4, banner:"standard"}
+];
+const weapons = [
+  {name:"天空の翼", rarity:5, banner:"pickup"},
+  {name:"鉄の剣", rarity:3, banner:"standard"}
+];
+
+const banners = {
+  character: { star5BaseRate:0.006, star4BaseRate:0.051, softPityStart:73, hardPity:90 },
+  weapon: { star5BaseRate:0.007, star4BaseRate:0.06, softPityStart:63, hardPity:77 }
+};
+
+// 履歴
+let history = JSON.parse(localStorage.getItem("gachaHistory")) || [];
+let pullsSinceLast5 = 0;
+let pullsSinceLast4 = 0;
+
+function getStar5Probability(type, pulls) {
+  const b = banners[type];
+  if(pulls<b.softPityStart) return b.star5BaseRate;
+  let m = pulls - b.softPityStart +1;
+  return type==="character"? Math.min(b.star5BaseRate+0.06*m,1) : Math.min(b.star5BaseRate+0.07*m,1);
+}
+
+function getRandomItem(type, rarity) {
+  const list = type==="character"? characters:weapons;
+  let candidates = list.filter(i=>i.rarity===rarity);
+  if(rarity===5 && Math.random()<0.75){
+    let pickup = candidates.filter(i=>i.banner==="pickup");
+    if(pickup.length>0) return pickup[Math.floor(Math.random()*pickup.length)];
+  }
+  return candidates[Math.floor(Math.random()*candidates.length)];
+}
+
+function pullItem(type){
+  const star5Prob = getStar5Probability(type,pullsSinceLast5);
+  const star4Prob = pullsSinceLast4>=9?1:banners[type].star4BaseRate;
+  const r=Math.random();
+  let result;
+  if(r<star5Prob){ result=getRandomItem(type,5); pullsSinceLast5=0; pullsSinceLast4++; }
+  else if(r<star5Prob+star4Prob){ result=getRandomItem(type,4); pullsSinceLast4=0; pullsSinceLast5++; }
+  else{ result=getRandomItem(type,3); pullsSinceLast5++; pullsSinceLast4++; }
+  history.push({item:result.name,type:type==="character"?"キャラ":"武器",rarity:result.rarity,pullCount:history.length+1,pickup:result.banner==="pickup"});
+  localStorage.setItem("gachaHistory",JSON.stringify(history));
+  renderHistory();
+}
+
+function multiPull(count){
+  for(let i=0;i<count;i++){
+    pullItem(Math.random()<0.5?"character":"weapon"); // キャラ/武器ランダム
+  }
+}
+
+function renderHistory(){
+  const table = document.getElementById("historyTable");
+  table.innerHTML='<tr><th>連数</th><th>アイテム名</th><th>レアリティ</th><th>タイプ</th><th>ピックアップ</th></tr>';
+  const filter = document.getElementById("filter").value;
+  history.forEach(h=>{
+    if(filter==="all"||h.rarity==filter){
+      let tr=document.createElement("tr");
+      tr.innerHTML=`<td>${h.pullCount}</td><td>${h.item}</td><td>${h.rarity}</td><td>${h.type}</td><td>${h.pickup?"〇":""}</td>`;
+      table.appendChild(tr);
+    }
+  });
+}
+
+renderHistory();
+</script>
+
+</body>
+</html>
