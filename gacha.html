@@ -1,111 +1,556 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>原神ガチャシミュレーター</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>原神ガチャシミュレーター（完全版・修正版）</title>
 <style>
-body { font-family: sans-serif; padding: 20px; background:#f0f0f5; }
-button { margin: 5px; padding: 10px 20px; }
-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
-th { background: #eee; }
+  :root{
+    --bg:#f6f7fb;
+    --panel:#ffffff;
+    --muted:#666;
+    --accent:#007bff;
+  }
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--bg);margin:0;padding:18px;color:#111;}
+  h1{margin:0 0 12px 0;font-size:20px;}
+  .top{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+  select,button,input{font-size:14px;padding:8px;border-radius:6px;border:1px solid #ccc;background:#fff}
+  button{cursor:pointer}
+  .panel{background:var(--panel);padding:12px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.04);margin-bottom:12px}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .centerButtons{text-align:center;margin:10px 0;}
+  .centerButtons button{min-width:72px}
+  .flex{display:flex;gap:10px;flex-wrap:wrap}
+  .col{flex:1 1 260px;min-width:200px}
+  .statsRow{display:flex;gap:10px;flex-wrap:wrap}
+  .statBox{flex:1 1 160px;background:#fbfcff;padding:8px;border-radius:8px;border:1px solid #eef;min-width:140px}
+  .toggle{color:var(--accent);cursor:pointer;text-decoration:underline}
+  /* color by rarity */
+  .star5{color:orange}
+  .star5-box{background:linear-gradient(90deg, rgba(255,240,220,1), rgba(255,250,240,1));border:1px solid rgba(255,200,100,0.25)}
+  .star4{color:purple}
+  .star4-box{background:linear-gradient(90deg, rgba(245,240,255,1), rgba(250,248,255,1));border:1px solid rgba(180,140,220,0.12)}
+  .star3{color:#1e90ff}
+  .star3-box{background:#f0f8ff;border:1px solid rgba(30,144,255,0.06)}
+  .star2{color:green}
+  .star1{color:gray}
+
+  /* foldable content layout */
+  .foldableContent{display:none;padding-top:10px}
+  .grid{display:flex;flex-wrap:wrap;gap:10px}
+  .gridItem{flex:1 1 30%;min-width:200px;background:#fff;padding:8px;border-radius:8px;border:1px solid #eee}
+  .listItem{display:flex;justify-content:space-between;padding:4px 6px;border-radius:6px}
+  .listHeader{font-weight:700;margin-bottom:6px}
+  .small{font-size:12px;color:var(--muted)}
+  /* responsive columns fallback: 1/2/3 */
+  @media (max-width:900px){ .gridItem{flex:1 1 45%} }
+  @media (max-width:520px){ .gridItem{flex:1 1 100%} }
+
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:6px;border-bottom:1px solid #efefef;text-align:left;font-size:13px}
+  th{background:#fafafa;font-weight:700}
+  .badge{display:inline-block;padding:2px 6px;border-radius:12px;background:#f5f5f5;font-size:12px}
+  .muted{color:#666;font-size:13px}
 </style>
 </head>
 <body>
+  <h1>原神ガチャシミュレーター（完全版・修正版）</h1>
 
-<h1>原神ガチャシミュレーター</h1>
-<div>
-<button onclick="multiPull(1)">1連</button>
-<button onclick="multiPull(10)">10連</button>
-<button onclick="multiPull(90)">90連</button>
-<button onclick="multiPull(180)">180連</button>
-</div>
+  <div class="top panel">
+    <div class="controls">
+      <label>バナー:
+        <select id="banner">
+          <option value="恒常">恒常（恒常★5 + ★4のみ）</option>
+          <option value="キャラ">キャラピックアップ（ピックアップ必須）</option>
+          <option value="武器">武器ピックアップ（ピックアップ必須・軌定対応）</option>
+        </select>
+      </label>
 
-<h2>履歴</h2>
-<label>フィルター: 
-<select id="filter" onchange="renderHistory()">
-<option value="all">すべて</option>
-<option value="5">★5</option>
-<option value="4">★4</option>
-<option value="3">★3</option>
-</select>
-</label>
-<table id="historyTable">
-<tr><th>連数</th><th>アイテム名</th><th>レアリティ</th><th>タイプ</th><th>ピックアップ</th></tr>
-</table>
+      <label>ピックアップ★5:
+        <select id="pickup"></select>
+      </label>
+
+      <label id="weaponTargetLabel" style="display:none">軌定武器(武器限定):
+        <select id="weaponTarget">
+          <option value="">未設定</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="centerButtons">
+      <button onclick="doPull(1)">1回</button>
+      <button onclick="doPull(10)">10回</button>
+      <button onclick="doPull(90)">90回</button>
+      <button onclick="doPull(180)">180回</button>
+      <span class="small" style="margin-left:10px">（1回 = 160 原石換算）</span>
+    </div>
+
+    <div class="statsRow">
+      <div class="statBox">
+        <div class="small">総祈願回数</div>
+        <div id="totalPulls">0</div>
+      </div>
+      <div class="statBox">
+        <div class="small">使用原石</div>
+        <div id="totalPrimogems">0</div>
+      </div>
+      <div class="statBox">
+        <div class="small">キャラガチャ回数</div>
+        <div id="charPulls">0</div>
+      </div>
+      <div class="statBox">
+        <div class="small">武器ガチャ回数</div>
+        <div id="weaponPulls">0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div><span class="small">現在バナー：</span><strong id="bannerName">恒常</strong></div>
+      <div><span class="small">現在ピックアップ：</span><strong id="pickupName">—</strong></div>
+      <div id="guaranteeNote" class="small muted"></div>
+    </div>
+  </div>
+
+  <!-- foldable sections -->
+  <div class="panel">
+    <span class="toggle" onclick="toggle('historyFold')">履歴（最新上）</span>
+    <div id="historyFold" class="foldableContent">
+      <div class="grid" id="historyGrid"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <span class="toggle" onclick="toggle('ownedFold')">所持 / 詳細確率（統合）</span>
+    <div id="ownedFold" class="foldableContent">
+      <div id="summaryBoxes" class="grid" style="align-items:flex-start"></div>
+
+      <div style="margin-top:10px" id="detailTables"></div>
+    </div>
+  </div>
 
 <script>
-// データ（例）
-const characters = [
-  {name:"アヤカ", rarity:5, banner:"pickup"},
-  {name:"リサ", rarity:4, banner:"standard"}
-];
-const weapons = [
-  {name:"天空の翼", rarity:5, banner:"pickup"},
-  {name:"鉄の剣", rarity:3, banner:"standard"}
-];
+/* ---------------- Data ---------------- */
+const 恒常星5 = ["ジン","ディルック","モナ","刻晴","七七","夢見月瑞希","ディシア"];
+const ピックアップ星5 = ["スカーク","アルベド","クレー","エウルア","ウェンティ","胡桃","魈","申鶴","鍾離","閑雲","白朮","夜蘭","甘雨","神里綾人","楓原万葉","神里綾華","千織","荒瀧一斗","雷電将軍","珊瑚宮心海","八重神子","宵宮","ニィロウ","アルハイゼン","セノ","放浪者","ナヒーダ","ティナリ","フリーナ","クロリンデ","ナヴィア","エミリエ","エスコフィエ","ヌヴィレット","リオセスリ","リネ","シグウィン","シロネン","マーヴィカ","キィニチ","ムアラニ","ヴァレサ","シトラリ","チャスカ","イネファ","フリンズ","ラウマ","ネフェル","アルレッキーノ","タルタリヤ"];
+const 星4キャラ = ["ベネット","ダリア","ガイア","レザー","ノエル","ロサリア","ミカ","バーバラ","スクロース","リサ","アンバー","フィッシュル","ディオナ","行秋","辛炎","嘉明","北斗","重雲","香菱","ヨォーヨ","雲菫","煙緋","藍硯","凝光","久岐忍","綺良々","早柚","トーマ","鹿野院平蔵","九条裟羅","ゴロー","レイラ","ドリー","カーヴェ","キャンディス","ファルザン","セトス","コレイ","リネット","フレミネ","シュヴルーズ","シャルロット","イアンサ","カチーナ","イファ","オロルン","アイノ"];
 
-const banners = {
-  character: { star5BaseRate:0.006, star4BaseRate:0.051, softPityStart:73, hardPity:90 },
-  weapon: { star5BaseRate:0.007, star4BaseRate:0.06, softPityStart:63, hardPity:77 }
+const 恒常星5武器 = ["風鷹剣","天空の刃","狼の末路","天空の傲","和璞鳶","天空の脊","四風原典","天空の巻","アモスの弓","天空の翼"];
+const ピックアップ星5武器 = ["蒼古なる自由への誓い","霧切の廻光","飛来の鳴弦","草薙の稲光","不滅の月華","盤岩結緑","冬極の白星","浮世の錠","薩摩の杖","終焉を嘆く詩","松韻の響く頃","赤角石塵滅砕","息炎","破天の槍","神楽の真意","若水","斬山の刃","狩人の道","赤砂の杖","聖顕の鍵","千夜に浮かぶ夢","トゥライトゥーラの記憶","波乱月白経津","萃光の栽葉","護摩の杖","碧落の瓏","始まりの大魔術","久遠流転の大典","凛流の監視者","静水流転の輝き","裁断","ルミドゥースの挽歌","サーフィンタイム","山の王の長牙","星鷲の紅き羽","千烈の日輪","祭星者の眺め","寝正月の初晴","香りのシンフォニスト","蒼耀","真言の匣","赤月のシルエット","岩峰を巡る歌","鶴鳴の余韻"];
+const 星4武器 = ["西風剣","笛の剣","祭礼の剣","匣中龍吟","西風大剣","鐘の剣","祭礼の大剣","雨裁","匣中滅龍","西風長槍","西風秘典","流浪楽章","祭礼の断片","昭心","西風猟弓","絶弦","祭礼の弓","弓蔵","旧貴族長剣","斬岩・試作","鉄蜂の刺し","黒岩の長剣","黒剣","降臨の剣","旧貴族大剣","古華・試作","白影の剣","黒岩の斬刀","螭龍の剣","星鎌・試作","流月の針","黒岩の突槍","死闘の槍","旧貴族秘法録","匣中日月","金珀・試作","万国諸海の図譜","黒岩の緋玉","旧貴族長弓","澹月・試作","リングボウ","黒岩の戦弓","蒼翠の狩猟弓","旧貴族猟槍","腐植の剣","冬忍びの実","雪葬の星銀","ドラゴンスピア","千岩古剣","千岩長槍","ダークアレイの閃光","ダークアレイの狩人","ダークアレイの酒と詩","風花の頌歌","幽夜のワルツ","ドドコの物語","喜多院十文字槍","桂木斬長正","白辰の輪","天目影打","破魔の弓","プレデター","銜玉の海皇","漁獲","曚雲の月","斬波のひれ長","惡王丸","シナバースピンドル","誓いの明瞳","落霞","籠釣瓶一心","竭沢","王の近侍","原木刀","ムーンピアサー","森林のレガリア","満悦の実","サイフォスの月明かり","マカイラの水色","彷徨える星","風信の矛","東花坊時雨","鉄彩の花","トキの嘴","海淵のフィナーレ","タイダル・シャドー","正義の報酬","純水流華","静寂の唄","狼牙","話死合い棒","フィヨルドの歌","古祠の瓏","烈日の後嗣","サーンドルの渡し守","船渠剣","携帯型チェーンソー"];
+
+let STAR3_NAMES = [];
+(function(){
+  for(let i=1;i<=80;i++) STAR3_NAMES.push(`★3武器_${i}`);
+})();
+
+/* ---------------- State ---------------- */
+let state = {
+  totalPulls:0,
+  primogems:0,
+  charPulls:0,
+  weaponPulls:0,
+  pityChar:0,
+  pityWeapon:0,
+  pity4Char:0,
+  pity4Weapon:0,
+  missedPUCount:0,
+  guaranteeNextPU:false,
+  weaponTarget:"",
+  weaponFateCounter:0,
+  ownedChars:{},
+  ownedWeapons:{},
+  history:[], // unlimited
+  counts:{star5:0,star4:0,star3:0,star2:0,star1:0}
 };
 
-// 履歴
-let history = JSON.parse(localStorage.getItem("gachaHistory")) || [];
-let pullsSinceLast5 = 0;
-let pullsSinceLast4 = 0;
+/* ---------------- Helpers ---------------- */
+function $(id){ return document.getElementById(id); }
+function rnd(){ return Math.random(); }
+function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 
-function getStar5Probability(type, pulls) {
-  const b = banners[type];
-  if(pulls<b.softPityStart) return b.star5BaseRate;
-  let m = pulls - b.softPityStart +1;
-  return type==="character"? Math.min(b.star5BaseRate+0.06*m,1) : Math.min(b.star5BaseRate+0.07*m,1);
-}
-
-function getRandomItem(type, rarity) {
-  const list = type==="character"? characters:weapons;
-  let candidates = list.filter(i=>i.rarity===rarity);
-  if(rarity===5 && Math.random()<0.75){
-    let pickup = candidates.filter(i=>i.banner==="pickup");
-    if(pickup.length>0) return pickup[Math.floor(Math.random()*pickup.length)];
+/* ---------------- UI init ---------------- */
+function populatePickupSelect(){
+  const banner = $('banner').value;
+  const sel = $('pickup');
+  sel.innerHTML = '';
+  let list=[];
+  if(banner==='恒常'){
+    list = 恒常星5.slice();
+  } else if(banner==='キャラ'){
+    list = ピックアップ星5.slice();
+  } else if(banner==='武器'){
+    list = ピックアップ星5武器.slice();
   }
-  return candidates[Math.floor(Math.random()*candidates.length)];
+  list.forEach(n=>{
+    const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o);
+  });
+  $('pickupName').textContent = sel.value || '—';
+  const wt = $('weaponTarget');
+  wt.innerHTML = '<option value=\"\">未設定</option>';
+  ピックアップ星5武器.forEach(w=>{ const o=document.createElement('option'); o.value=w; o.textContent=w; wt.appendChild(o);});
+  恒常星5武器.forEach(w=>{ const o=document.createElement('option'); o.value=w; o.textContent=w; wt.appendChild(o);});
+  updateWeaponTargetLabel();
+}
+$('banner').addEventListener('change', ()=>{
+  populatePickupSelect();
+  updateBannerName();
+  updateUI();
+});
+$('pickup').addEventListener('change', ()=>{ $('pickupName').textContent = $('pickup').value || '—'; });
+
+$('weaponTarget').addEventListener('change', ()=>{
+  state.weaponTarget = $('weaponTarget').value;
+  if(state.weaponTarget) state.weaponFateCounter = 0;
+  updateWeaponTargetLabel();
+  updateUI();
+});
+
+function updateBannerName(){ $('bannerName').textContent = $('banner').value; }
+function updateWeaponTargetLabel(){
+  const label = $('weaponTargetLabel');
+  if($('banner').value==='武器') label.style.display='inline-block';
+  else label.style.display='none';
 }
 
-function pullItem(type){
-  const star5Prob = getStar5Probability(type,pullsSinceLast5);
-  const star4Prob = pullsSinceLast4>=9?1:banners[type].star4BaseRate;
-  const r=Math.random();
-  let result;
-  if(r<star5Prob){ result=getRandomItem(type,5); pullsSinceLast5=0; pullsSinceLast4++; }
-  else if(r<star5Prob+star4Prob){ result=getRandomItem(type,4); pullsSinceLast4=0; pullsSinceLast5++; }
-  else{ result=getRandomItem(type,3); pullsSinceLast5++; pullsSinceLast4++; }
-  history.push({item:result.name,type:type==="character"?"キャラ":"武器",rarity:result.rarity,pullCount:history.length+1,pickup:result.banner==="pickup"});
-  localStorage.setItem("gachaHistory",JSON.stringify(history));
-  renderHistory();
+/* ---------------- Probability logic ---------------- */
+function getStar5ProbForChar(){
+  const p = state.pityChar;
+  if(p < 73) return 0.006;
+  const m = p - 73 + 1;
+  return clamp(0.006 + 0.06 * m, 0, 1.0);
+}
+function getStar5ProbForWeapon(){
+  const p = state.pityWeapon;
+  if(p < 62) return 0.007;
+  const m = p - 62 + 1;
+  return clamp(0.007 + 0.07 * m, 0, 1.0);
+}
+function getStar4ProbChar(){
+  const p = state.pity4Char;
+  if(p < 9) return 0.051;
+  return 1.0;
+}
+function getStar4ProbWeapon(){
+  const p = state.pity4Weapon;
+  if(p < 8) return 0.06;
+  return 1.0;
 }
 
-function multiPull(count){
-  for(let i=0;i<count;i++){
-    pullItem(Math.random()<0.5?"character":"weapon"); // キャラ/武器ランダム
+/* ---------------- Pull single ---------------- */
+let globalPullIndex = 0;
+function singlePull(bannerType){
+  globalPullIndex++;
+  state.totalPulls++; state.primogems = state.totalPulls * 160;
+
+  let result = { name:'', type:'', rarity:1, pickup:false, pullIndex:globalPullIndex };
+
+  if(bannerType==='恒常' || bannerType==='キャラ') state.charPulls++;
+  else state.weaponPulls++;
+
+  // determine star5
+  let isStar5 = false;
+  if(bannerType==='恒常' || bannerType==='キャラ'){
+    const p = getStar5ProbForChar();
+    if(rnd() < p || state.pityChar >= 90) isStar5 = true;
+  } else {
+    const p = getStar5ProbForWeapon();
+    if(rnd() < p || state.pityWeapon >= 80) isStar5 = true;
   }
+
+  if(isStar5){
+    result.rarity = 5;
+    // reset 5-pity counters
+    if(bannerType==='恒常' || bannerType==='キャラ'){ state.pityChar = 0; state.pity4Char = 0; }
+    else { state.pityWeapon = 0; state.pity4Weapon = 0; }
+
+    const pickupChosen = $('pickup').value || '';
+
+    if(bannerType === '恒常'){
+      // 恒常のみ
+      result.type = 'キャラ';
+      result.name = choice(恒常星5);
+      result.pickup = false;
+      state.missedPUCount = 0;
+      state.guaranteeNextPU = false;
+      state.ownedChars[result.name] = (state.ownedChars[result.name]||0)+1;
+
+    } else if(bannerType === 'キャラ'){
+      result.type = 'キャラ';
+      // guarantee handles previous non-pickup
+      if(state.guaranteeNextPU){
+        result.name = pickupChosen;
+        result.pickup = true;
+        state.guaranteeNextPU = false;
+        state.missedPUCount = 0;
+      } else {
+        // 50% pickup else 恒常 only (no other pickup)
+        if(rnd() < 0.5){
+          result.name = pickupChosen;
+          result.pickup = true;
+          state.missedPUCount = 0;
+        } else {
+          // pick from 恒常 only (ピックアップ以外のピックアップは出ない仕様)
+          result.name = choice(恒常星5);
+          result.pickup = false;
+          state.missedPUCount++;
+          state.guaranteeNextPU = true;
+        }
+      }
+      state.ownedChars[result.name] = (state.ownedChars[result.name]||0)+1;
+
+    } else { // 武器 banner
+      result.type = '武器';
+      const target = state.weaponTarget || '';
+
+      // Weapon fate (軌定) has priority to force target if counter reached
+      if(state.weaponFateCounter >= 1 && state.weaponTarget){
+        result.name = state.weaponTarget;
+        result.pickup = (result.name === pickupChosen);
+        // reset fate and pickup guarantees
+        state.weaponFateCounter = 0;
+        state.missedPUCount = 0;
+        state.guaranteeNextPU = false;
+      } else if(state.guaranteeNextPU){
+        // forced pickup because of prior non-pickup 5
+        result.name = pickupChosen;
+        result.pickup = true;
+        state.guaranteeNextPU = false;
+        state.missedPUCount = 0;
+      } else {
+        if(rnd() < 0.5){
+          result.name = pickupChosen;
+          result.pickup = true;
+          state.missedPUCount = 0;
+        } else {
+          // pick a non-pickup ★5 weapon from 恒常 only (ピックアップ以外のピックアップは出ない仕様)
+          const pool = 恒常星5武器.slice();
+          if(pool.length === 0) pool.push("恒常武器なし");
+          result.name = choice(pool);
+          result.pickup = false;
+          state.missedPUCount++;
+          state.guaranteeNextPU = true;
+        }
+      }
+
+      // weapon fate counter increment when non-target ★5 obtained and a target exists
+      if(state.weaponTarget){
+        if(result.name !== state.weaponTarget){
+          // increase fate; simplified to require 1 non-target to guarantee target next time
+          state.weaponFateCounter = Math.min(1, state.weaponFateCounter + 1);
+        } else {
+          state.weaponFateCounter = 0;
+        }
+      }
+
+      state.ownedWeapons[result.name] = (state.ownedWeapons[result.name]||0)+1;
+    }
+
+    state.counts.star5++;
+
+  } else {
+    // not ★5: check ★4
+    let isStar4 = false;
+    if(bannerType === '恒常' || bannerType === 'キャラ'){
+      const p4 = getStar4ProbChar();
+      if(rnd() < p4 || state.pity4Char >= 9) isStar4 = true;
+    } else {
+      const p4 = getStar4ProbWeapon();
+      if(rnd() < p4 || state.pity4Weapon >= 8) isStar4 = true;
+    }
+
+    if(isStar4){
+      result.rarity = 4;
+      if(bannerType === '武器'){
+        result.type = '武器';
+        result.name = choice(星4武器);
+        state.ownedWeapons[result.name] = (state.ownedWeapons[result.name]||0)+1;
+        state.pity4Weapon = 0;
+      } else {
+        result.type = 'キャラ';
+        result.name = choice(星4キャラ);
+        state.ownedChars[result.name] = (state.ownedChars[result.name]||0)+1;
+        state.pity4Char = 0;
+      }
+      state.counts.star4++;
+    } else {
+      // ★3 or lower
+      result.rarity = 3;
+      if(bannerType === '武器'){
+        result.type = '武器';
+        result.name = choice(STAR3_NAMES);
+        state.ownedWeapons[result.name] = (state.ownedWeapons[result.name]||0)+1;
+      } else {
+        result.type = 'キャラ';
+        result.name = '★3キャラ';
+        state.ownedChars[result.name] = (state.ownedChars[result.name]||0)+1;
+      }
+      state.counts.star3++;
+      // increase 4-pity counters continue
+    }
+
+    // increment pity counters because we didn't hit ★5
+    if(bannerType === '恒常' || bannerType === 'キャラ'){
+      state.pityChar++;
+      state.pity4Char++;
+    } else {
+      state.pityWeapon++;
+      state.pity4Weapon++;
+    }
+  }
+
+  // add to history (unlimited)
+  state.history.unshift(result);
+  return result;
+}
+
+/* ---------------- batch pull ---------------- */
+function doPull(n){
+  const banner = $('banner').value;
+  const pickupVal = $('pickup').value;
+  if((banner === 'キャラ' || banner === '武器') && !pickupVal){
+    alert('ピックアップ選択が必要ですわよ。');
+    return;
+  }
+  updateWeaponTargetLabel();
+
+  for(let i=0;i<n;i++){
+    singlePull(banner);
+  }
+  updateUI();
+}
+
+/* --------------- UI rendering --------------- */
+function toggle(id){
+  const el = $(id);
+  if(el.style.display==='block' || el.style.display==='flex') el.style.display='none';
+  else el.style.display='block';
 }
 
 function renderHistory(){
-  const table = document.getElementById("historyTable");
-  table.innerHTML='<tr><th>連数</th><th>アイテム名</th><th>レアリティ</th><th>タイプ</th><th>ピックアップ</th></tr>';
-  const filter = document.getElementById("filter").value;
-  history.forEach(h=>{
-    if(filter==="all"||h.rarity==filter){
-      let tr=document.createElement("tr");
-      tr.innerHTML=`<td>${h.pullCount}</td><td>${h.item}</td><td>${h.rarity}</td><td>${h.type}</td><td>${h.pickup?"〇":""}</td>`;
-      table.appendChild(tr);
-    }
+  const grid = $('historyGrid');
+  grid.innerHTML = '';
+  // show latest 200 entries for UI performance; history itself is unlimited in state.history
+  const list = state.history.slice(0,200);
+  list.forEach(h=>{
+    const item = document.createElement('div');
+    item.className = 'gridItem ' + (h.rarity===5 ? 'star5-box' : (h.rarity===4 ? 'star4-box' : ''));
+    const title = document.createElement('div');
+    title.innerHTML = `<div style="font-weight:700">${h.name}</div><div class="small">${h.type} / ${h.rarity}★ ${h.pickup?'<span class="badge">PU</span>':''}</div>`;
+    item.appendChild(title);
+    grid.appendChild(item);
   });
 }
 
-renderHistory();
-</script>
+function renderOwnedAndDetails(){
+  const container = $('summaryBoxes');
+  container.innerHTML = '';
 
+  const total = state.totalPulls || 1;
+  const totalStar5 = state.counts.star5 || 0;
+  const totalStar4 = state.counts.star4 || 0;
+  const totalStar3 = state.counts.star3 || 0;
+  const pickupHits = state.history.filter(h=>h.rarity===5 && h.pickup).length;
+
+  const items = [
+    {title:'★5 総率', value: `${((totalStar5/total)*100).toFixed(2)}% (${totalStar5}回)`, cls:'star5-box'},
+    {title:'★5（PUの割合）', value:`${(totalStar5? (pickupHits/totalStar5*100).toFixed(2):0)}% (${pickupHits}回 PU)`, cls:'star5-box'},
+    {title:'★4 総率', value: `${((totalStar4/total)*100).toFixed(2)}% (${totalStar4}回)`, cls:'star4-box'},
+    {title:'★3以下総率', value: `${((totalStar3/total)*100).toFixed(2)}% (${totalStar3}回)`, cls:'star3-box'},
+  ];
+  items.forEach(it=>{
+    const box = document.createElement('div'); box.className='gridItem';
+    box.innerHTML = `<div class="listHeader">${it.title}</div><div style="font-weight:700">${it.value}</div>`;
+    container.appendChild(box);
+  });
+
+  const tablesDiv = $('detailTables');
+  tablesDiv.innerHTML = '';
+
+  function makeTable(title, names, sourceMap, pullTypeCount){
+    const container = document.createElement('div');
+    container.className='panel';
+    const header = document.createElement('div'); header.className='listHeader'; header.textContent = title;
+    container.appendChild(header);
+
+    const tbl = document.createElement('table');
+    const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>名前</th><th>出た回数</th><th>確率</th></tr>`;
+    tbl.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    let showNames = names && names.length ? names.slice() : Object.keys(sourceMap);
+    showNames.forEach(n=>{
+      const cnt = sourceMap[n] || 0;
+      const denom = pullTypeCount || 1;
+      const pct = denom ? (cnt/denom*100).toFixed(4) : '0.0000';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${n}</td><td>${cnt}</td><td>${pct}%</td>`;
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    container.appendChild(tbl);
+    return container;
+  }
+
+  // 恒常★5 (chars + weapons)
+  const 恒常_star5_names = [...恒常星5, ...恒常星5武器];
+  const 恒常_map = {};
+  恒常_star5_names.forEach(n => {
+    恒常_map[n] = (state.ownedChars[n]||0) + (state.ownedWeapons[n]||0) || 0;
+  });
+  tablesDiv.appendChild(makeTable('恒常★5', 恒常_star5_names, 恒常_map, state.charPulls + state.weaponPulls));
+
+  // ピックアップ★5
+  const PU_names = [...ピックアップ星5, ...ピックアップ星5武器];
+  const PU_map = {};
+  PU_names.forEach(n => { PU_map[n] = (state.ownedChars[n]||0) + (state.ownedWeapons[n]||0) || 0; });
+  tablesDiv.appendChild(makeTable('ピックアップ★5', PU_names, PU_map, (state.charPulls + state.weaponPulls)));
+
+  // ★4 キャラ
+  const star4CharMap = {};
+  星4キャラ.forEach(n=> star4CharMap[n] = state.ownedChars[n] || 0);
+  tablesDiv.appendChild(makeTable('★4 キャラ', 星4キャラ, star4CharMap, state.charPulls || 1));
+
+  // ★4 武器
+  const star4WeapMap = {};
+  星4武器.forEach(n=> star4WeapMap[n] = state.ownedWeapons[n] || 0);
+  tablesDiv.appendChild(makeTable('★4 武器', 星4武器, star4WeapMap, state.weaponPulls || 1));
+
+  // ★3 武器
+  const star3Map = {};
+  STAR3_NAMES.forEach(n => star3Map[n] = state.ownedWeapons[n] || 0);
+  tablesDiv.appendChild(makeTable('★3 武器', STAR3_NAMES, star3Map, state.weaponPulls || 1));
+}
+
+/* ---------------- updateUI ---------------- */
+function updateUI(){
+  $('totalPulls').textContent = state.totalPulls;
+  $('totalPrimogems').textContent = (state.totalPulls * 160);
+  $('charPulls').textContent = state.charPulls;
+  $('weaponPulls').textContent = state.weaponPulls;
+  $('pickupName').textContent = $('pickup').value || '—';
+
+  const note = $('guaranteeNote');
+  note.textContent = state.guaranteeNextPU ? '次の★5はピックアップ確定 (' + (state.missedPUCount?('すり抜け回数:'+state.missedPUCount):'') + ')' : '';
+
+  renderHistory();
+  renderOwnedAndDetails();
+}
+
+/* ---------------- startup ---------------- */
+(function init(){
+  state.ownedChars = {};
+  state.ownedWeapons = {};
+  state.counts = {star5:0,star4:0,star3:0,star2:0,star1:0};
+  populatePickupSelect();
+  updateBannerName();
+  updateWeaponTargetLabel();
+  updateUI();
+})();
+
+</script>
 </body>
 </html>
