@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ようこそ！</title>
     <style>
-        /* 画面いっぱいの高さとマージンリセット */
         html, body {
             height: 100%;
             margin: 0;
@@ -14,64 +13,48 @@
 
         body {
             font-family: Arial, sans-serif;
-            
-            /* Flexboxで上下左右中央揃え */
             display: flex;
-            justify-content: center; /* 水平中央 */
-            align-items: center;    /* 垂直中央 */
-            
-            /* 背景画像の設定 */
+            justify-content: center;
+            align-items: center;
             background-image: url('https://raw.githubusercontent.com/suiuhyousoushimokorihu-jpg/suiuhyousoushimokorihu.github.io/main/681718873116706.jpg');
-            
-            /* 修正点: 縦横比を維持して画面全体を覆う (歪まない) */
-            background-size: cover; 
-            
+            background-size: cover;
             background-repeat: no-repeat;
             background-attachment: fixed;
             background-color: #333;
-            background-position: center center; /* 画像を中央に配置 */
+            background-position: center center;
         }
         
-        /* コンテンツブロックの設定 */
         .container {
             width: 80%;
             max-width: 800px;
-            /* Flexbox (body) が中央配置を行うため、margin: auto はなくても中央に配置されますが、
-               安全のため維持し、上下のマージンは不要なため削除しました。 */
-            margin: auto; 
+            margin: auto;
             padding: 20px;
-            
-            /* 背景画像が見える半透明の白 */
-            background-color: rgba(255, 255, 255, 0.85); 
-            
-            border-radius: 8px; 
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             border: 1px solid #ccc;
-
-            /* テキストをすべて中央揃えにする */
             text-align: center;
         }
 
         h1, p, a {
             color: #333;
         }
+
         .link-section {
             margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    
     <div class="container">
         <h1>ようこそ！</h1>
-
         <p>翠雨雑談部についての説明はこちら</p>
 
         <div class="link-section">
             <p>リンク： <a href="suiu-zatsudanbu.html">翠雨雑談部</a></p>
             <p>リンク： <a href="pts.html">ポイント統計</a></p>
+            <p>リンク： <a href="gacha.html">ガチャシュミレーター</a></p>
         </div>
     </div>
-
 </body>
 </html>
