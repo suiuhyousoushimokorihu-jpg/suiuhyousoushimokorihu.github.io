@@ -4,48 +4,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>原神 キャラビルド＆ダメージ計算</title>
+<title>原神 キャラ表示</title>
 <style>
-  body { font-family: sans-serif; background:#f0f0f5; padding:20px; }
-  .char-grid { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+  body { font-family: sans-serif; background:#f0f0f5; padding:20px; display:flex; flex-direction:column; align-items:center; }
+  .uid-entry { margin-top:100px; text-align:center; }
+  input { padding:10px; width:200px; font-size:16px; }
+  button { padding:10px 20px; font-size:16px; cursor:pointer; margin-left:10px; }
+  .char-grid { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
   .char-card { cursor:pointer; width:80px; text-align:center; }
   .char-card img { width: 80px; height: 80px; border-radius:10px; }
-  .details { background:#fff; padding:15px; border-radius:10px; margin-bottom:20px; }
+  .details { background:#fff; padding:15px; border-radius:10px; margin-top:20px; display:none; width:300px; }
   .buttons { margin-top:20px; }
   .buttons button { padding:10px 20px; margin-right:10px; cursor:pointer; }
-  .build-card, .damage-calc { background:#fff; padding:15px; border-radius:10px; margin-top:10px; }
-  input { width:60px; }
+  .build-card, .damage-calc { background:#fff; padding:15px; border-radius:10px; margin-top:10px; display:none; width:300px; }
 </style>
 </head>
 <body>
 
-<h2>キャラクター一覧</h2>
-<div id="charGrid" class="char-grid"></div>
+<div id="uidEntry" class="uid-entry">
+  <input type="text" id="uidInput" placeholder="UIDを入力">
+  <button id="loadBtn">読み込む</button>
+</div>
 
-<div id="charDetails" class="details" style="display:none;"></div>
+<div id="charGrid" class="char-grid"></div>
+<div id="charDetails" class="details"></div>
 
 <div class="buttons">
   <button id="buildBtn">ビルドカード作成</button>
   <button id="damageBtn">ダメージ計算機</button>
 </div>
 
-<div id="buildArea" class="build-card" style="display:none;"></div>
-<div id="damageArea" class="damage-calc" style="display:none;"></div>
+<div id="buildArea" class="build-card"></div>
+<div id="damageArea" class="damage-calc"></div>
 
 <script>
-const UID = '840804051'; // ここに対象UID
 let avatars = [];
 let selectedChar = null;
+let UID = '';
 
-// キャラ取得
-async function fetchChars() {
+// UID入力後キャラ取得
+document.getElementById('loadBtn').onclick = async () => {
+  UID = document.getElementById('uidInput').value.trim();
+  if(!UID) return alert('UIDを入力してください');
   try {
     const res = await fetch(`https://enka.network/api/uid/${UID}`);
     const data = await res.json();
     avatars = data.avatars || [];
+    document.getElementById('uidEntry').style.display='none';
     renderCharGrid();
   } catch(e) {
     console.error("取得失敗", e);
+    alert('キャラクター取得に失敗しました');
   }
 }
 
@@ -118,8 +127,6 @@ document.getElementById('damageBtn').onclick = () => {
     document.getElementById('result').textContent = `予測ダメージ: ${dmg}`;
   }
 };
-
-fetchChars();
 </script>
 
 </body>
