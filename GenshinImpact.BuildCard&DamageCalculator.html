@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>原神ビルドカード＋ダメージ計算（プロキシ版）</title>
+<title>原神ビルドカード＋ダメージ計算（修正版）</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -11,7 +12,7 @@
 <body class="bg-gray-100 min-h-screen flex flex-col items-center py-6">
 
 <header class="mb-6">
-  <h1 class="text-2xl font-bold">原神ビルドカード＋ダメージ計算（プロキシ版）</h1>
+  <h1 class="text-2xl font-bold">原神ビルドカード＋ダメージ計算（修正版）</h1>
 </header>
 
 <main class="w-full max-w-6xl px-4">
@@ -34,7 +35,7 @@ function BuildCard({ card }) {
   const damage = calcDamage(card.stats);
   return (
     React.createElement('div', { className: 'bg-white p-2 rounded shadow text-center' },
-      React.createElement('img', { src: card.character.icon, alt: card.character.name, className: 'w-16 h-16 mx-auto' }),
+      React.createElement('img', { src: card.character.icon || 'default.png', alt: card.character.name, className: 'w-16 h-16 mx-auto' }),
       React.createElement('div', { className: 'mt-1 font-bold' }, card.character.name),
       React.createElement('div', null, `LV: ${card.level}`),
       React.createElement('div', null, `ATK: ${card.stats.atk}`),
@@ -52,7 +53,6 @@ function App() {
     if (!uid) return;
     setStatus('取得中...');
     try {
-      // 自前プロキシ経由で Enka API 取得
       const res = await fetch(`http://localhost:3000/api/uid/${uid}`);
       const data = await res.json();
 
@@ -63,11 +63,13 @@ function App() {
 
       console.log(data); // デバッグ用
 
-      const newCards = data.avatarInfoList.map(char => ({
+      const newCards = data.avatarInfoList
+        .filter(Boolean)
+        .map(char => ({
         id: char.avatarId,
         character: {
-          name: (char.nameTextMap && char.nameTextMap.ja) || `ID:${char.avatarId}`,
-          icon: char.icon ? `https://enka.network/ui/${char.icon}` : ''
+          name: (char.nameTextMap && (char.nameTextMap.ja || char.nameTextMap.en)) || `ID:${char.avatarId}`,
+          icon: char.icon || char.iconName ? `https://enka.network/ui/${char.icon || char.iconName}.png` : 'default.png'
         },
         level: char.level || 1,
         stats: {
