@@ -1,85 +1,29 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>原神ビルドカード＆ダメージ計算</title>
-<style>
-  body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
-  #cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
-  .card { background: #fff; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-  img { width: 80px; height: 80px; }
-  button { margin-right: 10px; }
-  #damageCalc { display: none; margin-top: 20px; }
-</style>
-</head>
-<body>
-
-<label>UID: <input type="text" id="uid" value="840804051"></label>
-<button id="fetchBtn">キャラクター情報取得</button>
-<button id="showBuild">ビルドカード</button>
-<button id="showDamage">ダメージ計算器</button>
-
-<div id="cards"></div>
-<div id="damageCalc">
-  <h3>ダメージ計算器</h3>
-  <p>選択キャラの予測ダメージを表示</p>
-  <ul id="damageList"></ul>
-</div>
+<div id="charList" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
 
 <script>
-const fetchBtn = document.getElementById('fetchBtn');
-const showBuild = document.getElementById('showBuild');
-const showDamage = document.getElementById('showDamage');
-const cardsDiv = document.getElementById('cards');
-const damageDiv = document.getElementById('damageCalc');
-const damageList = document.getElementById('damageList');
+// サンプルデータ
+const characters = [
+  {id:10000112, name:"ID:10000112", icon:"https://enka.network/ui/UI_AvatarIcon_Side_10000112.png", level:1, atk:324.62, predictedDmg:844.0},
+  {id:10000114, name:"ID:10000114", icon:"https://enka.network/ui/UI_AvatarIcon_Side_10000114.png", level:1, atk:410.21, predictedDmg:1066.5},
+  // 他キャラも同様に
+];
 
-let avatars = [];
+const charList = document.getElementById('charList');
 
-fetchBtn.addEventListener('click', async () => {
-    const uid = document.getElementById('uid').value;
-    const res = await fetch(`http://localhost:3000/api/uid/${uid}`);
-    const data = await res.json();
-    avatars = data.avatars || [];
-    renderCards();
+characters.forEach(c => {
+  const div = document.createElement('div');
+  div.style.cursor = 'pointer';
+  div.style.textAlign = 'center';
+  div.innerHTML = `
+    <img src="${c.icon}" width="60" height="60"><br>
+    ${c.name}
+  `;
+  
+  // クリックで詳細表示
+  div.addEventListener('click', () => {
+    alert(`キャラ名: ${c.name}\nLV: ${c.level}\nATK: ${c.atk.toFixed(1)}\n予測ダメージ: ${c.predictedDmg}`);
+  });
+  
+  charList.appendChild(div);
 });
-
-showBuild.addEventListener('click', () => {
-    cardsDiv.style.display = 'grid';
-    damageDiv.style.display = 'none';
-});
-
-showDamage.addEventListener('click', () => {
-    cardsDiv.style.display = 'none';
-    damageDiv.style.display = 'block';
-    renderDamage();
-});
-
-function renderCards() {
-    cardsDiv.innerHTML = '';
-    avatars.forEach(av => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <img src="${av.icon}" alt="${av.name}">
-            <p>${av.name}</p>
-            <p>LV: ${av.level}</p>
-            <p>ATK: ${av.atk.toFixed(1)}</p>
-            <p>予測ダメージ: ${av.predictedDmg}</p>
-        `;
-        cardsDiv.appendChild(card);
-    });
-}
-
-function renderDamage() {
-    damageList.innerHTML = '';
-    avatars.forEach(av => {
-        const li = document.createElement('li');
-        li.textContent = `${av.name}: ${av.predictedDmg}`;
-        damageList.appendChild(li);
-    });
-}
 </script>
-
-</body>
-</html>
