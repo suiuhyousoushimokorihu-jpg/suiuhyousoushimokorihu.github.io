@@ -2,105 +2,83 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>原神ビルドカード＋ダメージ計算（修正版）</title>
-<link rel="icon" href="favicon.ico" type="image/x-icon">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<title>原神ビルドカード＆ダメージ計算</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+  #cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
+  .card { background: #fff; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  img { width: 80px; height: 80px; }
+  button { margin-right: 10px; }
+  #damageCalc { display: none; margin-top: 20px; }
+</style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center py-6">
+<body>
 
-<header class="mb-6">
-  <h1 class="text-2xl font-bold">原神ビルドカード＋ダメージ計算（修正版）</h1>
-</header>
+<label>UID: <input type="text" id="uid" value="840804051"></label>
+<button id="fetchBtn">キャラクター情報取得</button>
+<button id="showBuild">ビルドカード</button>
+<button id="showDamage">ダメージ計算器</button>
 
-<main class="w-full max-w-6xl px-4">
-  <div id="root"></div>
-</main>
+<div id="cards"></div>
+<div id="damageCalc">
+  <h3>ダメージ計算器</h3>
+  <p>選択キャラの予測ダメージを表示</p>
+  <ul id="damageList"></ul>
+</div>
 
-<footer class="mt-auto text-gray-400 text-sm">原神ビルドカードサイト © 2025</footer>
+<script>
+const fetchBtn = document.getElementById('fetchBtn');
+const showBuild = document.getElementById('showBuild');
+const showDamage = document.getElementById('showDamage');
+const cardsDiv = document.getElementById('cards');
+const damageDiv = document.getElementById('damageCalc');
+const damageList = document.getElementById('damageList');
 
-<script type="text/javascript">
-const { useState } = React;
+let avatars = [];
 
-function calcDamage({atk, crit_rate, crit_dmg, dmg_bonus}, multiplier=1, enemy_res=0.1) {
-  const base = atk * multiplier;
-  const nonCrit = base * (1 + dmg_bonus);
-  const crit = base * (1 + crit_dmg) * (1 + dmg_bonus);
-  return Math.round(nonCrit * (1 - crit_rate) + crit * crit_rate) * (1 - enemy_res);
+fetchBtn.addEventListener('click', async () => {
+    const uid = document.getElementById('uid').value;
+    const res = await fetch(`http://localhost:3000/api/uid/${uid}`);
+    const data = await res.json();
+    avatars = data.avatars || [];
+    renderCards();
+});
+
+showBuild.addEventListener('click', () => {
+    cardsDiv.style.display = 'grid';
+    damageDiv.style.display = 'none';
+});
+
+showDamage.addEventListener('click', () => {
+    cardsDiv.style.display = 'none';
+    damageDiv.style.display = 'block';
+    renderDamage();
+});
+
+function renderCards() {
+    cardsDiv.innerHTML = '';
+    avatars.forEach(av => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <img src="${av.icon}" alt="${av.name}">
+            <p>${av.name}</p>
+            <p>LV: ${av.level}</p>
+            <p>ATK: ${av.atk.toFixed(1)}</p>
+            <p>予測ダメージ: ${av.predictedDmg}</p>
+        `;
+        cardsDiv.appendChild(card);
+    });
 }
 
-function BuildCard({ card }) {
-  const damage = calcDamage(card.stats);
-  return (
-    React.createElement('div', { className: 'bg-white p-2 rounded shadow text-center' },
-      React.createElement('img', { src: card.character.icon || 'default.png', alt: card.character.name, className: 'w-16 h-16 mx-auto' }),
-      React.createElement('div', { className: 'mt-1 font-bold' }, card.character.name),
-      React.createElement('div', null, `LV: ${card.level}`),
-      React.createElement('div', null, `ATK: ${card.stats.atk}`),
-      React.createElement('div', { className: 'mt-1 text-red-500 font-semibold' }, `予測ダメージ: ${damage}`)
-    )
-  );
+function renderDamage() {
+    damageList.innerHTML = '';
+    avatars.forEach(av => {
+        const li = document.createElement('li');
+        li.textContent = `${av.name}: ${av.predictedDmg}`;
+        damageList.appendChild(li);
+    });
 }
-
-function App() {
-  const [cards, setCards] = useState([]);
-  const [uid, setUid] = useState('');
-  const [status, setStatus] = useState('まだ取得されていません');
-
-  const fetchProfile = async () => {
-    if (!uid) return;
-    setStatus('取得中...');
-    try {
-      const res = await fetch(`http://localhost:3000/api/uid/${uid}`);
-      const data = await res.json();
-
-      if (!data.avatarInfoList) {
-        setStatus('キャラクター情報がありません');
-        return;
-      }
-
-      console.log(data); // デバッグ用
-
-      const newCards = data.avatarInfoList
-        .filter(Boolean)
-        .map(char => ({
-        id: char.avatarId,
-        character: {
-          name: (char.nameTextMap && (char.nameTextMap.ja || char.nameTextMap.en)) || `ID:${char.avatarId}`,
-          icon: char.icon || char.iconName ? `https://enka.network/ui/${char.icon || char.iconName}.png` : 'default.png'
-        },
-        level: char.level || 1,
-        stats: {
-          atk: char.fightPropMap?.[5] || 0,
-          crit_rate: char.fightPropMap?.[20] || 0,
-          crit_dmg: char.fightPropMap?.[22] || 0,
-          dmg_bonus: 0
-        }
-      }));
-
-      setCards(newCards.slice(0,16));
-      setStatus(`UID ${uid} のプロフィール取得完了`);
-    } catch(err) {
-      console.error(err);
-      setStatus('プロフィール取得に失敗しました');
-    }
-  };
-
-  return React.createElement('div', null,
-    React.createElement('div', { className: 'mb-4' },
-      React.createElement('input', { type: 'text', value: uid, onChange: e => setUid(e.target.value), placeholder: 'UIDを入力', className: 'border rounded p-2 mr-2' }),
-      React.createElement('button', { onClick: fetchProfile, className: 'px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600' }, 'プロフィール取得'),
-      React.createElement('p', { className: 'text-sm text-gray-500 mt-2' }, status)
-    ),
-    React.createElement('div', { className: 'grid grid-cols-4 gap-3' },
-      cards.map(card => React.createElement(BuildCard, { key: card.id, card }))
-    )
-  );
-}
-
-ReactDOM.render(React.createElement(App), document.getElementById('root'));
 </script>
 
 </body>
