@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>原神ビルドカード＋ダメージ計算</title>
+<title>原神ビルドカード＋ダメージ計算（CORS対応）</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -11,46 +11,30 @@
 <body class="bg-gray-100 min-h-screen flex flex-col items-center py-6">
 
 <header class="mb-6">
-  <h1 class="text-2xl font-bold">原神ビルドカード＋ダメージ計算</h1>
+  <h1 class="text-2xl font-bold">原神ビルドカード＋ダメージ計算（CORS対応）</h1>
 </header>
 
 <main class="w-full max-w-6xl px-4">
-  <!-- UID入力フォーム -->
-  <section class="mb-6">
-    <label class="block mb-2">UID入力:</label>
-    <div class="flex gap-2">
-      <input id="uidInput" type="text" class="border rounded p-2 flex-1" placeholder="例: 123456789">
-      <button id="fetchProfileBtn" class="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600">プロフィール取得</button>
-    </div>
-    <p id="status" class="text-sm text-gray-500 mt-2">まだ取得されていません</p>
-  </section>
-
-  <!-- ビルドカード表示 -->
-  <section id="buildCardGridSection" class="mb-6">
-    <div id="buildCardGrid" class="grid grid-cols-4 gap-3"></div>
-  </section>
+  <div id="root"></div>
 </main>
 
 <footer class="mt-auto text-gray-400 text-sm">原神ビルドカードサイト © 2025</footer>
 
 <script type="text/javascript">
-const { useState, useEffect } = React;
+const { useState } = React;
 
-// ダメージ計算関数
 function calcDamage({atk, crit_rate, crit_dmg, dmg_bonus}, multiplier=1, enemy_res=0.1) {
   const base = atk * multiplier;
   const nonCrit = base * (1 + dmg_bonus);
   const crit = base * (1 + crit_dmg) * (1 + dmg_bonus);
-  const expected = nonCrit * (1 - crit_rate) + crit * crit_rate;
-  return Math.round(expected * (1 - enemy_res));
+  return Math.round(nonCrit * (1 - crit_rate) + crit * crit_rate) * (1 - enemy_res);
 }
 
 function BuildCard({ card }) {
-  const damage = calcDamage(card.stats, 1); // multiplier 1でサンプル
-
+  const damage = calcDamage(card.stats);
   return (
     React.createElement('div', { className: 'bg-white p-2 rounded shadow text-center' },
-      React.createElement('img', { src: `https://enka.network/ui/${card.character.icon}`, alt: card.character.name, className: 'w-16 h-16 mx-auto' }),
+      React.createElement('img', { src: card.character.icon, alt: card.character.name, className: 'w-16 h-16 mx-auto' }),
       React.createElement('div', { className: 'mt-1 font-bold' }, card.character.name),
       React.createElement('div', null, `LV: ${card.level}`),
       React.createElement('div', null, `ATK: ${card.stats.atk}`),
@@ -59,58 +43,59 @@ function BuildCard({ card }) {
   );
 }
 
-function BuildCardGrid({ buildCards }) {
-  return (
-    React.createElement('div', { className: 'grid grid-cols-4 gap-3' },
-      buildCards.map(card => React.createElement(BuildCard, { key: card.id, card }))
-    )
-  );
-}
-
 function App() {
   const [cards, setCards] = useState([]);
+  const [uid, setUid] = useState('');
   const [status, setStatus] = useState('まだ取得されていません');
 
-  async function fetchProfile() {
-    const uid = document.getElementById('uidInput').value.trim();
+  const fetchProfile = async () => {
     if (!uid) return;
-
     setStatus('取得中...');
     try {
-      const res = await fetch(`https://enka.network/api/uid/${uid}`);
-      if (!res.ok) throw new Error('プロフィール取得失敗');
-      const data = await res.json();
+      // CORS回避のためプロキシを経由
+      const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(`https://enka.network/api/uid/${uid}`);
+      const res = await fetch(proxyUrl);
+      const jsonText = await res.json();
+      const data = JSON.parse(jsonText.contents);
+
+      console.log(data); // デバッグ
 
       const newCards = data.avatarInfoList.map(char => ({
         id: char.avatarId,
-        character: { name: char.nameTextHashMap['ja'] || `ID:${char.avatarId}`, icon: char.icon },
+        character: {
+          name: (char.nameTextMap?.ja) || `ID:${char.avatarId}`,
+          icon: `https://enka.network/ui/${char.icon}`
+        },
         level: char.level,
         stats: {
-          atk: char.fightPropMap[5] || 0,
-          crit_rate: char.fightPropMap[20] || 0,
-          crit_dmg: char.fightPropMap[22] || 0,
+          atk: char.fightPropMap?.[5] || 0,
+          crit_rate: char.fightPropMap?.[20] || 0,
+          crit_dmg: char.fightPropMap?.[22] || 0,
           dmg_bonus: 0
         }
       }));
 
       setCards(newCards.slice(0,16));
       setStatus(`UID ${uid} のプロフィール取得完了`);
-    } catch (err) {
-      setStatus('プロフィール取得に失敗しました');
+    } catch(err) {
       console.error(err);
+      setStatus('プロフィール取得に失敗しました');
     }
-  }
+  };
 
-  useEffect(() => {
-    const btn = document.getElementById('fetchProfileBtn');
-    btn.addEventListener('click', fetchProfile);
-    return () => btn.removeEventListener('click', fetchProfile);
-  }, []);
-
-  return React.createElement(BuildCardGrid, { buildCards: cards });
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'mb-4' },
+      React.createElement('input', { type: 'text', value: uid, onChange: e => setUid(e.target.value), placeholder: 'UIDを入力', className: 'border rounded p-2 mr-2' }),
+      React.createElement('button', { onClick: fetchProfile, className: 'px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600' }, 'プロフィール取得'),
+      React.createElement('p', { className: 'text-sm text-gray-500 mt-2' }, status)
+    ),
+    React.createElement('div', { className: 'grid grid-cols-4 gap-3' },
+      cards.map(card => React.createElement(BuildCard, { key: card.id, card }))
+    )
+  );
 }
 
-ReactDOM.render(React.createElement(App), document.getElementById('buildCardGrid'));
+ReactDOM.render(React.createElement(App), document.getElementById('root'));
 </script>
 
 </body>
