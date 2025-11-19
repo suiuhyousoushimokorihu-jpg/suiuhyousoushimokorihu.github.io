@@ -4,56 +4,122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>キャラクター一覧</title>
+<title>原神 キャラビルド＆ダメージ計算</title>
 <style>
-  body { font-family: sans-serif; background: #f0f0f0; padding: 20px; }
-  .character-list { display: flex; flex-wrap: wrap; gap: 15px; }
-  .character { background: #fff; border-radius: 10px; padding: 10px; text-align: center; width: 120px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-  .character img { width: 80px; height: 80px; object-fit: contain; }
-  .character-name { margin-top: 8px; font-weight: bold; font-size: 0.9em; }
+  body { font-family: sans-serif; background:#f0f0f5; padding:20px; }
+  .char-grid { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+  .char-card { cursor:pointer; width:80px; text-align:center; }
+  .char-card img { width: 80px; height: 80px; border-radius:10px; }
+  .details { background:#fff; padding:15px; border-radius:10px; margin-bottom:20px; }
+  .buttons { margin-top:20px; }
+  .buttons button { padding:10px 20px; margin-right:10px; cursor:pointer; }
+  .build-card, .damage-calc { background:#fff; padding:15px; border-radius:10px; margin-top:10px; }
+  input { width:60px; }
 </style>
 </head>
 <body>
 
 <h2>キャラクター一覧</h2>
-<div class="character-list" id="characterList">取得中...</div>
+<div id="charGrid" class="char-grid"></div>
+
+<div id="charDetails" class="details" style="display:none;"></div>
+
+<div class="buttons">
+  <button id="buildBtn">ビルドカード作成</button>
+  <button id="damageBtn">ダメージ計算機</button>
+</div>
+
+<div id="buildArea" class="build-card" style="display:none;"></div>
+<div id="damageArea" class="damage-calc" style="display:none;"></div>
 
 <script>
-async function loadCharacters(uid) {
-  const container = document.getElementById("characterList");
-  container.innerHTML = "";
-  
+const UID = '840804051'; // ここに対象UID
+let avatars = [];
+let selectedChar = null;
+
+// キャラ取得
+async function fetchChars() {
   try {
-    const res = await fetch(`https://enka.network/api/uid/${uid}`);
+    const res = await fetch(`https://enka.network/api/uid/${UID}`);
     const data = await res.json();
-    const avatars = data.avatars; // avatars配列
-    
-    avatars.forEach(av => {
-      const div = document.createElement("div");
-      div.className = "character";
-      
-      const img = document.createElement("img");
-      img.src = `https://enka.network/ui/${av.icon}.png`; // APIのicon名を使用
-      img.alt = av.name;
-      img.onerror = () => { img.src = "default_icon.png"; }; // 404回避
-      
-      const nameDiv = document.createElement("div");
-      nameDiv.className = "character-name";
-      nameDiv.textContent = av.name;
-      
-      div.appendChild(img);
-      div.appendChild(nameDiv);
-      container.appendChild(div);
-    });
-    
-  } catch (err) {
-    container.innerHTML = "キャラクター情報の取得に失敗しました";
-    console.error(err);
+    avatars = data.avatars || [];
+    renderCharGrid();
+  } catch(e) {
+    console.error("取得失敗", e);
   }
 }
 
-// ここに対象UIDを入れる
-loadCharacters(840804051);
+// キャラアイコン表示
+function renderCharGrid() {
+  const grid = document.getElementById('charGrid');
+  grid.innerHTML = '';
+  avatars.forEach(a => {
+    const div = document.createElement('div');
+    div.className = 'char-card';
+    const img = document.createElement('img');
+    img.src = `https://enka.network/ui/${a.icon.replace('.png','')}.png`;
+    img.onerror = ()=>{ img.src='https://via.placeholder.com/80'; };
+    div.appendChild(img);
+    const name = document.createElement('div');
+    name.textContent = a.name;
+    div.appendChild(name);
+    div.onclick = ()=>showDetails(a);
+    grid.appendChild(div);
+  });
+}
+
+// 詳細表示
+function showDetails(a) {
+  selectedChar = a;
+  const details = document.getElementById('charDetails');
+  details.style.display = 'block';
+  details.innerHTML = `
+    <h3>${a.name}</h3>
+    <p>LV: ${a.level}</p>
+    <p>ATK: ${a.atk.toFixed(1)}</p>
+    <p>会心率: ${(a.crit_rate*100).toFixed(1)}%</p>
+    <p>会心ダメ: ${(a.crit_dmg*100).toFixed(1)}%</p>
+    <p>予測ダメージ: ${a.predictedDmg}</p>
+  `;
+}
+
+// ビルドカード作成
+document.getElementById('buildBtn').onclick = () => {
+  document.getElementById('buildArea').style.display='block';
+  document.getElementById('damageArea').style.display='none';
+  const area = document.getElementById('buildArea');
+  area.innerHTML = avatars.map(a=>`
+    <div style="border:1px solid #ccc; padding:10px; margin-bottom:5px;">
+      <img src="https://enka.network/ui/${a.icon.replace('.png','')}.png" style="width:50px; vertical-align:middle;">
+      ${a.name} LV:${a.level} ATK:${a.atk.toFixed(1)}
+    </div>
+  `).join('');
+};
+
+// ダメージ計算機
+document.getElementById('damageBtn').onclick = () => {
+  document.getElementById('damageArea').style.display='block';
+  document.getElementById('buildArea').style.display='none';
+  const area = document.getElementById('damageArea');
+  if(!selectedChar){ area.innerHTML='キャラクターを選択してください'; return;}
+  area.innerHTML = `
+    <h3>${selectedChar.name} ダメージ計算</h3>
+    <p>ATK: <input id="atkInput" value="${selectedChar.atk.toFixed(1)}"> </p>
+    <p>会心率: <input id="critInput" value="${(selectedChar.crit_rate*100).toFixed(1)}">%</p>
+    <p>会心ダメ: <input id="cdInput" value="${(selectedChar.crit_dmg*100).toFixed(1)}">%</p>
+    <button id="calcBtn">計算</button>
+    <p id="result">予測ダメージ: ${selectedChar.predictedDmg}</p>
+  `;
+  document.getElementById('calcBtn').onclick = ()=>{
+    const atk = parseFloat(document.getElementById('atkInput').value);
+    const crit = parseFloat(document.getElementById('critInput').value)/100;
+    const cd = parseFloat(document.getElementById('cdInput').value)/100;
+    const dmg = (atk*(1+crit*cd)).toFixed(1);
+    document.getElementById('result').textContent = `予測ダメージ: ${dmg}`;
+  }
+};
+
+fetchChars();
 </script>
 
 </body>
