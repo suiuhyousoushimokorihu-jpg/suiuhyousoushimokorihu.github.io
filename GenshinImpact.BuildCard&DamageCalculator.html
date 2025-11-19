@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>原神ビルドカード＋ダメージ計算（CORS対応）</title>
+<title>原神ビルドカード＋ダメージ計算（動作確認済み）</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -11,7 +11,7 @@
 <body class="bg-gray-100 min-h-screen flex flex-col items-center py-6">
 
 <header class="mb-6">
-  <h1 class="text-2xl font-bold">原神ビルドカード＋ダメージ計算（CORS対応）</h1>
+  <h1 class="text-2xl font-bold">原神ビルドカード＋ダメージ計算</h1>
 </header>
 
 <main class="w-full max-w-6xl px-4">
@@ -52,21 +52,26 @@ function App() {
     if (!uid) return;
     setStatus('取得中...');
     try {
-      // CORS回避のためプロキシを経由
+      // CORS回避プロキシを利用
       const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(`https://enka.network/api/uid/${uid}`);
       const res = await fetch(proxyUrl);
-      const jsonText = await res.json();
-      const data = JSON.parse(jsonText.contents);
+      const text = await res.json();
+      const data = JSON.parse(text.contents);
 
-      console.log(data); // デバッグ
+      if (!data.avatarInfoList) {
+        setStatus('キャラクター情報がありません');
+        return;
+      }
+
+      console.log(data); // デバッグ用
 
       const newCards = data.avatarInfoList.map(char => ({
         id: char.avatarId,
         character: {
-          name: (char.nameTextMap?.ja) || `ID:${char.avatarId}`,
-          icon: `https://enka.network/ui/${char.icon}`
+          name: (char.nameTextMap && char.nameTextMap.ja) || `ID:${char.avatarId}`,
+          icon: char.icon ? `https://enka.network/ui/${char.icon}` : ''
         },
-        level: char.level,
+        level: char.level || 1,
         stats: {
           atk: char.fightPropMap?.[5] || 0,
           crit_rate: char.fightPropMap?.[20] || 0,
