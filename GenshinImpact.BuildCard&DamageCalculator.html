@@ -1,29 +1,60 @@
-<div id="charList" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>キャラクター一覧</title>
+<style>
+  body { font-family: sans-serif; background: #f0f0f0; padding: 20px; }
+  .character-list { display: flex; flex-wrap: wrap; gap: 15px; }
+  .character { background: #fff; border-radius: 10px; padding: 10px; text-align: center; width: 120px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+  .character img { width: 80px; height: 80px; object-fit: contain; }
+  .character-name { margin-top: 8px; font-weight: bold; font-size: 0.9em; }
+</style>
+</head>
+<body>
+
+<h2>キャラクター一覧</h2>
+<div class="character-list" id="characterList">取得中...</div>
 
 <script>
-// サンプルデータ
-const characters = [
-  {id:10000112, name:"ID:10000112", icon:"https://enka.network/ui/UI_AvatarIcon_Side_10000112.png", level:1, atk:324.62, predictedDmg:844.0},
-  {id:10000114, name:"ID:10000114", icon:"https://enka.network/ui/UI_AvatarIcon_Side_10000114.png", level:1, atk:410.21, predictedDmg:1066.5},
-  // 他キャラも同様に
-];
-
-const charList = document.getElementById('charList');
-
-characters.forEach(c => {
-  const div = document.createElement('div');
-  div.style.cursor = 'pointer';
-  div.style.textAlign = 'center';
-  div.innerHTML = `
-    <img src="${c.icon}" width="60" height="60"><br>
-    ${c.name}
-  `;
+async function loadCharacters(uid) {
+  const container = document.getElementById("characterList");
+  container.innerHTML = "";
   
-  // クリックで詳細表示
-  div.addEventListener('click', () => {
-    alert(`キャラ名: ${c.name}\nLV: ${c.level}\nATK: ${c.atk.toFixed(1)}\n予測ダメージ: ${c.predictedDmg}`);
-  });
-  
-  charList.appendChild(div);
-});
+  try {
+    const res = await fetch(`https://enka.network/api/uid/${uid}`);
+    const data = await res.json();
+    const avatars = data.avatars; // avatars配列
+    
+    avatars.forEach(av => {
+      const div = document.createElement("div");
+      div.className = "character";
+      
+      const img = document.createElement("img");
+      img.src = `https://enka.network/ui/${av.icon}.png`; // APIのicon名を使用
+      img.alt = av.name;
+      img.onerror = () => { img.src = "default_icon.png"; }; // 404回避
+      
+      const nameDiv = document.createElement("div");
+      nameDiv.className = "character-name";
+      nameDiv.textContent = av.name;
+      
+      div.appendChild(img);
+      div.appendChild(nameDiv);
+      container.appendChild(div);
+    });
+    
+  } catch (err) {
+    container.innerHTML = "キャラクター情報の取得に失敗しました";
+    console.error(err);
+  }
+}
+
+// ここに対象UIDを入れる
+loadCharacters(840804051);
 </script>
+
+</body>
+</html>
