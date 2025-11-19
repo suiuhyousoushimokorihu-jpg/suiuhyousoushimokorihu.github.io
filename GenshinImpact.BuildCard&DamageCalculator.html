@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>原神ビルドカード＋ダメージ計算（動作確認済み）</title>
+<title>原神ビルドカード＋ダメージ計算（プロキシ版）</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -11,7 +11,7 @@
 <body class="bg-gray-100 min-h-screen flex flex-col items-center py-6">
 
 <header class="mb-6">
-  <h1 class="text-2xl font-bold">原神ビルドカード＋ダメージ計算</h1>
+  <h1 class="text-2xl font-bold">原神ビルドカード＋ダメージ計算（プロキシ版）</h1>
 </header>
 
 <main class="w-full max-w-6xl px-4">
@@ -52,11 +52,9 @@ function App() {
     if (!uid) return;
     setStatus('取得中...');
     try {
-      // CORS回避プロキシを利用
-      const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(`https://enka.network/api/uid/${uid}`);
-      const res = await fetch(proxyUrl);
-      const text = await res.json();
-      const data = JSON.parse(text.contents);
+      // 自前プロキシ経由で Enka API 取得
+      const res = await fetch(`http://localhost:3000/api/uid/${uid}`);
+      const data = await res.json();
 
       if (!data.avatarInfoList) {
         setStatus('キャラクター情報がありません');
