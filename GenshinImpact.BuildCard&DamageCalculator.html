@@ -4,97 +4,82 @@
 <meta charset="UTF-8">
 <title>原神ビルドカード＆ダメージ計算</title>
 <style>
-  body { font-family: sans-serif; padding: 20px; }
-  #avatars, #damageCalc { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
-  .card { border: 1px solid #ccc; padding: 10px; width: 150px; text-align: center; }
-  .hidden { display: none; }
-  button { margin-right: 10px; margin-top: 10px; }
-  #damageCalc .calcCard { border: 1px solid #ccc; padding: 10px; width: 300px; }
+  body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+  #cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
+  .card { background: #fff; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  img { width: 80px; height: 80px; }
+  button { margin-right: 10px; }
+  #damageCalc { display: none; margin-top: 20px; }
 </style>
 </head>
 <body>
-<h1>原神ビルドカード & ダメージ計算</h1>
 
-<input type="text" id="uidInput" placeholder="UIDを入力" />
-<button id="fetchBtn">プロフィール取得</button>
+<label>UID: <input type="text" id="uid" value="840804051"></label>
+<button id="fetchBtn">キャラクター情報取得</button>
+<button id="showBuild">ビルドカード</button>
+<button id="showDamage">ダメージ計算器</button>
 
-<div style="margin-top: 20px;">
-  <button id="showBuildBtn">ビルドカード表示</button>
-  <button id="showDmgBtn">ダメージ計算器表示</button>
+<div id="cards"></div>
+<div id="damageCalc">
+  <h3>ダメージ計算器</h3>
+  <p>選択キャラの予測ダメージを表示</p>
+  <ul id="damageList"></ul>
 </div>
 
-<div id="avatars"></div>
-
-<div id="damageCalc" class="hidden"></div>
-
 <script>
-let avatarsData = [];
+const fetchBtn = document.getElementById('fetchBtn');
+const showBuild = document.getElementById('showBuild');
+const showDamage = document.getElementById('showDamage');
+const cardsDiv = document.getElementById('cards');
+const damageDiv = document.getElementById('damageCalc');
+const damageList = document.getElementById('damageList');
 
-document.getElementById('fetchBtn').onclick = async () => {
-  const uid = document.getElementById('uidInput').value.trim();
-  if(!uid) return alert('UIDを入力してください');
-  const res = await fetch(`http://localhost:3000/api/uid/${uid}`);
-  const data = await res.json();
-  avatarsData = data.avatars;
+let avatars = [];
 
-  // 初回はビルドカード表示
-  showBuildCards();
-};
+fetchBtn.addEventListener('click', async () => {
+    const uid = document.getElementById('uid').value;
+    const res = await fetch(`http://localhost:3000/api/uid/${uid}`);
+    const data = await res.json();
+    avatars = data.avatars || [];
+    renderCards();
+});
 
-function showBuildCards() {
-  document.getElementById('damageCalc').classList.add('hidden');
-  const container = document.getElementById('avatars');
-  container.classList.remove('hidden');
-  container.innerHTML = '';
-  avatarsData.forEach(char => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <img src="${char.icon}" width="80" />
-      <p>${char.name}</p>
-      <p>LV: ${char.level}</p>
-      <p>ATK: ${char.atk}</p>
-      <p>予測ダメージ: ${char.predictedDmg}</p>
-    `;
-    container.appendChild(card);
-  });
+showBuild.addEventListener('click', () => {
+    cardsDiv.style.display = 'grid';
+    damageDiv.style.display = 'none';
+});
+
+showDamage.addEventListener('click', () => {
+    cardsDiv.style.display = 'none';
+    damageDiv.style.display = 'block';
+    renderDamage();
+});
+
+function renderCards() {
+    cardsDiv.innerHTML = '';
+    avatars.forEach(av => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <img src="${av.icon}" alt="${av.name}">
+            <p>${av.name}</p>
+            <p>LV: ${av.level}</p>
+            <p>ATK: ${av.atk.toFixed(1)}</p>
+            <p>予測ダメージ: ${av.predictedDmg}</p>
+        `;
+        cardsDiv.appendChild(card);
+    });
 }
 
-function showDamageCalculator() {
-  document.getElementById('avatars').classList.add('hidden');
-  const container = document.getElementById('damageCalc');
-  container.classList.remove('hidden');
-  container.innerHTML = '';
-
-  avatarsData.forEach(char => {
-    const calcCard = document.createElement('div');
-    calcCard.className = 'calcCard';
-    calcCard.innerHTML = `
-      <img src="${char.icon}" width="80" />
-      <p>${char.name}</p>
-      <p>LV: ${char.level}</p>
-      <label>ATK: <input type="number" value="${char.atk}" class="atkInput"></label><br>
-      <label>会心率(%): <input type="number" value="${char.crit_rate}" class="critInput"></label><br>
-      <label>会心ダメ(%): <input type="number" value="${char.crit_dmg}" class="critDmgInput"></label><br>
-      <button class="calcBtn">計算</button>
-      <p class="result">予測ダメージ: ${char.predictedDmg}</p>
-    `;
-    container.appendChild(calcCard);
-
-    const btn = calcCard.querySelector('.calcBtn');
-    btn.onclick = () => {
-      const atk = parseFloat(calcCard.querySelector('.atkInput').value) || 0;
-      const crit = parseFloat(calcCard.querySelector('.critInput').value) || 0;
-      const critDmg = parseFloat(calcCard.querySelector('.critDmgInput').value) || 0;
-      // シンプルな計算式: ATK * (1 + CRIT_RATE * CRIT_DMG)
-      const dmg = (atk * (1 + crit/100 * critDmg/100)).toFixed(1);
-      calcCard.querySelector('.result').textContent = `予測ダメージ: ${dmg}`;
-    };
-  });
+function renderDamage() {
+    damageList.innerHTML = '';
+    avatars.forEach(av => {
+        const li = document.createElement('li');
+        li.textContent = `${av.name}: ${av.predictedDmg}`;
+        damageList.appendChild(li);
+    });
 }
-
-document.getElementById('showBuildBtn').onclick = showBuildCards;
-document.getElementById('showDmgBtn').onclick = showDamageCalculator;
 </script>
+
 </body>
 </html>
